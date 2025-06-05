@@ -2,7 +2,6 @@ import { box, randomBytes } from 'tweetnacl';
 import { decodeUTF8, encodeUTF8, encodeBase64, decodeBase64 } from 'tweetnacl-util';
 import { PublicKey } from '@solana/web3.js';
 import bs58 from 'bs58';
-import { sha256 } from '@noble/hashes/sha256';
 
 export interface EncryptedData {
   ciphertext: string;
@@ -10,40 +9,43 @@ export interface EncryptedData {
   ephemeralPublicKey: string;
 }
 
-function generateDeterministicKeyPair(seed: Uint8Array): { publicKey: Uint8Array; secretKey: Uint8Array } {
-  // Use the first 32 bytes of the seed for the secret key
-  const secretKey = sha256(seed);
-  const keyPair = box.keyPair.fromSecretKey(new Uint8Array(secretKey));
-  return keyPair;
+function uint8ArrayToHex(arr: Uint8Array): string {
+  return Array.from(arr)
+    .map(b => b.toString(16).padStart(2, '0'))
+    .join('');
+}
+
+function hexToUint8Array(hex: string): Uint8Array {
+  const pairs = hex.match(/[\dA-F]{2}/gi) || [];
+  return new Uint8Array(pairs.map(s => parseInt(s, 16)));
 }
 
 export function encryptMessage(message: string, recipientPublicKeyB58: string): EncryptedData {
   try {
-    // Generate ephemeral keypair
-    const ephemeralKeyPair = box.keyPair();
-    const nonce = randomBytes(box.nonceLength);
-
+    // Generate ephemeral keypair for this message
+    const ephemeralKeypair = box.keyPair();
+    
     // Convert recipient public key from base58 to Uint8Array
     const recipientPubKey = bs58.decode(recipientPublicKeyB58);
 
-    // Encrypt the message
+    // Generate shared key using box.before()
+    const sharedKey = box.before(recipientPubKey, ephemeralKeypair.secretKey);
+    
+    // Generate nonce
+    const nonce = randomBytes(box.nonceLength);
+    
+    // Encrypt message using shared key
     const messageUint8 = decodeUTF8(message);
-    const encrypted = box(
-      messageUint8,
-      nonce,
-      recipientPubKey,
-      ephemeralKeyPair.secretKey
-    );
+    const encrypted = box.after(messageUint8, nonce, sharedKey);
 
     if (!encrypted) {
       throw new Error('Encryption failed');
     }
 
-    // Return base64 encoded values
     return {
       ciphertext: encodeBase64(encrypted),
       nonce: encodeBase64(nonce),
-      ephemeralPublicKey: encodeBase64(ephemeralKeyPair.publicKey)
+      ephemeralPublicKey: encodeBase64(ephemeralKeypair.publicKey)
     };
   } catch (error) {
     console.error('Encryption error:', error);
@@ -59,20 +61,26 @@ export async function signForDecryption(wallet: any, recipientAddress: string): 
 
     // Create a fixed message to sign
     const message = new TextEncoder().encode(
-      `DM the DEV: Sign to decrypt messages\nWallet: ${recipientAddress}`
+      `Sign to decrypt messages on DM the DEV\nWallet: ${recipientAddress}`
     );
 
     console.log('Requesting signature from wallet...');
     
     // Get signature from wallet
     const signature = await wallet.signMessage(message);
-    const signatureBytes = signature instanceof Uint8Array ? signature : bs58.decode(signature);
-
-    // Generate deterministic keypair from signature
-    const keyPair = generateDeterministicKeyPair(signatureBytes);
-    console.log('Generated key pair successfully');
     
-    return keyPair.secretKey;
+    // Convert signature to Uint8Array if it's not already
+    const signatureBytes = signature instanceof Uint8Array ? signature : bs58.decode(signature);
+    
+    // Use the signature directly as the secret key
+    // Make sure it's exactly 32 bytes
+    const secretKey = new Uint8Array(signatureBytes.slice(0, 32));
+    
+    if (secretKey.length !== box.secretKeyLength) {
+      throw new Error('Invalid secret key length');
+    }
+
+    return secretKey;
   } catch (error) {
     console.error('Failed to sign message:', error);
     throw error;
@@ -93,7 +101,7 @@ export async function decryptMessage(
     }
 
     // Get secret key from wallet signature
-    const secretKey = await signForDecryption(wallet, recipientAddress);
+    const recipientSecretKey = await signForDecryption(wallet, recipientAddress);
     
     // Decode the encrypted data
     const ciphertext = decodeBase64(encryptedData.ciphertext);
@@ -104,9 +112,6 @@ export async function decryptMessage(
     if (nonce.length !== box.nonceLength) {
       throw new Error('Invalid nonce length');
     }
-    if (secretKey.length !== box.secretKeyLength) {
-      throw new Error('Invalid secret key length');
-    }
     if (ephemeralPublicKey.length !== box.publicKeyLength) {
       throw new Error('Invalid public key length');
     }
@@ -115,15 +120,13 @@ export async function decryptMessage(
     console.log('Ciphertext length:', ciphertext.length);
     console.log('Nonce length:', nonce.length);
     console.log('Ephemeral public key length:', ephemeralPublicKey.length);
-    console.log('Secret key length:', secretKey.length);
+    console.log('Secret key length:', recipientSecretKey.length);
 
-    // Try decryption
-    const decrypted = box.open(
-      ciphertext,
-      nonce,
-      ephemeralPublicKey,
-      secretKey
-    );
+    // Generate shared key
+    const sharedKey = box.before(ephemeralPublicKey, recipientSecretKey);
+
+    // Decrypt using shared key
+    const decrypted = box.open.after(ciphertext, nonce, sharedKey);
 
     if (!decrypted) {
       throw new Error('Decryption failed - invalid key or corrupted message');
