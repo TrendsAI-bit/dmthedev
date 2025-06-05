@@ -33,6 +33,7 @@ export default function Home() {
   const [decryptingMessageId, setDecryptingMessageId] = useState<string | null>(null);
   const [decryptedMessages, setDecryptedMessages] = useState<Record<string, string>>({});
   const [decryptionQueue, setDecryptionQueue] = useState<string[]>([]);
+  const [decryptionInProgress, setDecryptionInProgress] = useState(false);
 
   const handleFindDeployer = async () => {
     if (!tokenAddress) return;
@@ -191,24 +192,22 @@ export default function Home() {
     }
   };
 
-  const handleDecryptMessage = () => {
-    if (!encryptedMessage) {
-      setDecryptedMessage('Please paste an encrypted message first! [warning]');
+  const handleDecryptMessage = async (messageId: string) => {
+    if (!connected || !publicKey) {
+      alert('Please connect your wallet first');
       return;
     }
-    
-    // Simulate decryption
-    setTimeout(() => {
-      const funMessages = [
-        'HODL strong! Diamond hands forever! [diamond]',
-        'Wen moon? Soon moon! [rocket]',
-        'This is financial advice: buy high, sell low [wink]',
-        'I put my life savings into this token! [scared]',
-        'The dev rugged... but at least the memes were good [cry]',
-        'To the moon and beyond! Mars is next! [space]',
-      ];
-      setDecryptedMessage(funMessages[Math.floor(Math.random() * funMessages.length)]);
-    }, 1000);
+
+    if (decryptedMessages[messageId]) {
+      return; // Message already decrypted
+    }
+
+    setDecryptionQueue(prev => {
+      if (prev.includes(messageId)) {
+        return prev;
+      }
+      return [...prev, messageId];
+    });
   };
 
   const fetchMessages = useCallback(async () => {
@@ -233,82 +232,68 @@ export default function Home() {
   }, [publicKey]);
 
   useEffect(() => {
-    if (decryptionQueue.length > 0 && !decryptingMessageId) {
-      const messageId = decryptionQueue[0];
-      const message = messages.find(m => m.id === messageId);
-      if (message) {
-        handleDecrypt(message);
-      }
-      setDecryptionQueue(prev => prev.slice(1));
-    }
-  }, [decryptionQueue, decryptingMessageId, messages]);
-
-  const handleDecrypt = async (message: EncryptedMessage) => {
-    if (!publicKey || !wallet) {
-      alert('Please connect your wallet first');
-      return;
-    }
-
-    // Verify the message is intended for this wallet
-    if (message.to !== publicKey.toBase58()) {
-      alert('This message is not intended for your wallet address');
-      return;
-    }
-
-    // If already decrypting, add to queue
-    if (decryptingMessageId) {
-      setDecryptionQueue(prev => [...prev, message.id!]);
-      return;
-    }
-
-    setDecryptingMessageId(message.id || null);
-    try {
-      console.log('Attempting to decrypt message:', message.id);
-      console.log('Current wallet address:', publicKey.toBase58());
-      console.log('Message recipient address:', message.to);
-
-      // Check if wallet is Phantom
-      if (wallet.adapter.name !== 'Phantom') {
-        alert('Please use Phantom wallet for the best experience. Other wallets may not work correctly.');
+    const processQueue = async () => {
+      if (decryptionQueue.length === 0 || decryptionInProgress || !connected || !publicKey || !wallet) {
         return;
       }
 
-      const decrypted = await decryptMessage(
-        {
-          ciphertext: message.ciphertext,
-          nonce: message.nonce,
-          ephemeralPublicKey: message.ephemeralPublicKey
-        },
-        wallet.adapter,
-        message.to
-      );
+      setDecryptionInProgress(true);
+      const messageId = decryptionQueue[0];
 
-      if (decrypted && message.id) {
-        console.log('Message decrypted successfully');
+      try {
+        const message = messages.find(m => m.id === messageId);
+        if (!message) {
+          throw new Error('Message not found');
+        }
+
+        console.log('Attempting to decrypt message:', messageId);
+        console.log('Current wallet address:', publicKey.toBase58());
+        console.log('Message recipient address:', message.to);
+
+        if (message.to !== publicKey.toBase58()) {
+          throw new Error('Message not intended for this wallet');
+        }
+
+        console.log('Starting decryption process...');
+        console.log('Requesting signature from wallet...');
+
+        if (!('signMessage' in wallet.adapter)) {
+          throw new Error('Wallet does not support message signing');
+        }
+
+        const decrypted = await decryptMessage(
+          {
+            ciphertext: message.ciphertext,
+            nonce: message.nonce,
+            ephemeralPublicKey: message.ephemeralPublicKey
+          },
+          wallet.adapter,
+          message.to
+        );
+
         setDecryptedMessages(prev => ({
           ...prev,
-          [message.id!]: decrypted
+          [messageId]: decrypted
         }));
+
+      } catch (error) {
+        console.error('Decryption error:', error);
+      } finally {
+        setDecryptionQueue(prev => prev.slice(1));
+        setDecryptionInProgress(false);
       }
-    } catch (error: any) {
-      console.error('Decryption error:', error);
-      let errorMessage = 'Failed to decrypt message. ';
-      
-      if (error.message.includes('sign')) {
-        errorMessage += 'Please make sure you approve the signature request.';
-      } else if (error.message.includes('format')) {
-        errorMessage += 'The message format appears to be invalid.';
-      } else if (error.message.includes('wallet')) {
-        errorMessage += 'Please make sure you are using Phantom wallet.';
-      } else {
-        errorMessage += 'Please try again or contact support if the issue persists.';
-      }
-      
-      alert(errorMessage);
-    } finally {
-      setDecryptingMessageId(null);
-    }
-  };
+    };
+
+    processQueue();
+  }, [decryptionQueue, decryptionInProgress, connected, publicKey, wallet, messages]);
+
+  useEffect(() => {
+    return () => {
+      setDecryptionQueue([]);
+      setDecryptionInProgress(false);
+      setDecryptedMessages({});
+    };
+  }, []);
 
   return (
     <main className="min-h-screen">
@@ -469,7 +454,7 @@ export default function Home() {
                 />
               </div>
               <button
-                onClick={handleDecryptMessage}
+                onClick={() => handleDecryptMessage(encryptedMessage)}
                 className="bg-white border-3 border-black py-4 px-8 font-bold rounded-xl rotate-1 hover:animate-bounce-light w-full"
               >
                 Decrypt Message [unlock] ↗
@@ -516,11 +501,11 @@ export default function Home() {
                       </div>
                     ) : (
                       <button
-                        onClick={() => handleDecrypt(msg)}
-                        disabled={decryptingMessageId === msg.id}
+                        onClick={() => handleDecryptMessage(msg.id!)}
+                        disabled={decryptionInProgress}
                         className="w-full mt-2 py-2 px-4 border-2 border-black rounded-lg bg-white hover:bg-gray-50 transition-colors"
                       >
-                        {decryptingMessageId === msg.id ? '🔄 Decrypting...' : '🔑 Decrypt Message'}
+                        {decryptionInProgress ? 'Decrypting...' : '🔑 Decrypt Message'}
                       </button>
                     )}
                     
