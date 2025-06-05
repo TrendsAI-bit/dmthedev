@@ -10,6 +10,22 @@ export interface EncryptedData {
   ephemeralPublicKey: string;
 }
 
+function isValidUTF8(bytes: Uint8Array): boolean {
+  try {
+    const decoder = new TextDecoder('utf-8', { fatal: true });
+    decoder.decode(bytes);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function bytesToHex(bytes: Uint8Array): string {
+  return Array.from(bytes)
+    .map(b => b.toString(16).padStart(2, '0'))
+    .join('');
+}
+
 function validateEncryptedData(data: EncryptedData): void {
   try {
     const ciphertext = decodeBase64(data.ciphertext);
@@ -22,23 +38,40 @@ function validateEncryptedData(data: EncryptedData): void {
     if (ephemeralPublicKey.length !== box.publicKeyLength) {
       throw new Error(`Invalid public key length: ${ephemeralPublicKey.length}, expected ${box.publicKeyLength}`);
     }
+
+    console.log('Validated encrypted data:');
+    console.log('Ciphertext (hex):', bytesToHex(ciphertext));
+    console.log('Nonce (hex):', bytesToHex(nonce));
+    console.log('Ephemeral Public Key (hex):', bytesToHex(ephemeralPublicKey));
   } catch (error) {
     throw new Error('Invalid base64 encoding in encrypted data');
   }
 }
 
 function safeEncodeUTF8(bytes: Uint8Array): string {
+  // First check if the bytes are valid UTF-8
+  if (!isValidUTF8(bytes)) {
+    console.error('Invalid UTF-8 bytes (hex):', bytesToHex(bytes));
+    throw new Error('Decrypted data is not valid UTF-8');
+  }
+
   try {
-    return encodeUTF8(bytes);
+    // Use TextDecoder for more robust UTF-8 decoding
+    const decoder = new TextDecoder('utf-8', { fatal: true });
+    return decoder.decode(bytes);
   } catch (error) {
+    console.error('UTF-8 decoding error:', error);
     throw new Error('Failed to encode decrypted message as UTF-8');
   }
 }
 
 function safeDecodeUTF8(text: string): Uint8Array {
   try {
-    return decodeUTF8(text);
+    // Use TextEncoder for more robust UTF-8 encoding
+    const encoder = new TextEncoder();
+    return encoder.encode(text);
   } catch (error) {
+    console.error('UTF-8 encoding error:', error);
     throw new Error('Failed to decode message for encryption');
   }
 }
@@ -62,11 +95,14 @@ export function encryptMessage(message: string, recipientPublicKeyB58: string): 
 
     // Convert message to Uint8Array and encrypt
     const messageBytes = safeDecodeUTF8(message);
-    const encrypted = box.after(messageBytes, nonce, sharedKey);
+    console.log('Original message bytes (hex):', bytesToHex(messageBytes));
 
+    const encrypted = box.after(messageBytes, nonce, sharedKey);
     if (!encrypted) {
       throw new Error('Encryption failed');
     }
+
+    console.log('Encrypted bytes (hex):', bytesToHex(encrypted));
 
     const result = {
       ciphertext: encodeBase64(encrypted),
@@ -129,10 +165,11 @@ export async function decryptMessage(
 
     // Attempt decryption using box.after()
     const decrypted = box.after(ciphertext, nonce, sharedKey);
-
     if (!decrypted) {
       throw new Error('Decryption failed - invalid key or corrupted message');
     }
+
+    console.log('Decrypted bytes (hex):', bytesToHex(decrypted));
 
     // Safely convert decrypted bytes to UTF-8 string
     const decryptedText = safeEncodeUTF8(decrypted);

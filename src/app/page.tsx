@@ -270,12 +270,29 @@ export default function Home() {
 
       } catch (error: any) {
         console.error('Decryption error:', error);
-        // Show user-friendly error message
+        
+        // Show user-friendly error message based on the error type
         const errorMessage = error.message || 'Unknown error occurred';
-        const userMessage = errorMessage.includes('URI malformed') 
-          ? 'Failed to decrypt message: The message appears to be corrupted'
-          : `Failed to decrypt message: ${errorMessage}`;
+        let userMessage = 'Failed to decrypt message: ';
+
+        if (errorMessage.includes('not valid UTF-8')) {
+          userMessage += 'The message appears to be corrupted (invalid text format)';
+        } else if (errorMessage.includes('invalid key')) {
+          userMessage += 'Unable to decrypt with your wallet key';
+        } else if (errorMessage.includes('Invalid base64')) {
+          userMessage += 'The message data appears to be corrupted';
+        } else {
+          userMessage += errorMessage;
+        }
+
         alert(userMessage);
+
+        // Remove the failed message from decrypted messages if it was partially added
+        setDecryptedMessages(prev => {
+          const { [messageId]: removed, ...rest } = prev;
+          return rest;
+        });
+
       } finally {
         setDecryptionQueue(prev => prev.slice(1));
         setDecryptionInProgress(false);
