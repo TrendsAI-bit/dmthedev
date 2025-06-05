@@ -257,6 +257,11 @@ export default function Home() {
           message.to
         );
 
+        // Validate decrypted message
+        if (typeof decrypted !== 'string' || decrypted.length === 0) {
+          throw new Error('Invalid decrypted message format');
+        }
+
         // Update state in a single batch
         setDecryptedMessages(prev => ({
           ...prev,
@@ -265,8 +270,12 @@ export default function Home() {
 
       } catch (error: any) {
         console.error('Decryption error:', error);
-        // Show error message to user
-        alert(`Failed to decrypt message: ${error.message}`);
+        // Show user-friendly error message
+        const errorMessage = error.message || 'Unknown error occurred';
+        const userMessage = errorMessage.includes('URI malformed') 
+          ? 'Failed to decrypt message: The message appears to be corrupted'
+          : `Failed to decrypt message: ${errorMessage}`;
+        alert(userMessage);
       } finally {
         setDecryptionQueue(prev => prev.slice(1));
         setDecryptionInProgress(false);

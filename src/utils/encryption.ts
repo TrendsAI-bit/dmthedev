@@ -11,15 +11,35 @@ export interface EncryptedData {
 }
 
 function validateEncryptedData(data: EncryptedData): void {
-  const ciphertext = decodeBase64(data.ciphertext);
-  const nonce = decodeBase64(data.nonce);
-  const ephemeralPublicKey = decodeBase64(data.ephemeralPublicKey);
+  try {
+    const ciphertext = decodeBase64(data.ciphertext);
+    const nonce = decodeBase64(data.nonce);
+    const ephemeralPublicKey = decodeBase64(data.ephemeralPublicKey);
 
-  if (nonce.length !== box.nonceLength) {
-    throw new Error(`Invalid nonce length: ${nonce.length}, expected ${box.nonceLength}`);
+    if (nonce.length !== box.nonceLength) {
+      throw new Error(`Invalid nonce length: ${nonce.length}, expected ${box.nonceLength}`);
+    }
+    if (ephemeralPublicKey.length !== box.publicKeyLength) {
+      throw new Error(`Invalid public key length: ${ephemeralPublicKey.length}, expected ${box.publicKeyLength}`);
+    }
+  } catch (error) {
+    throw new Error('Invalid base64 encoding in encrypted data');
   }
-  if (ephemeralPublicKey.length !== box.publicKeyLength) {
-    throw new Error(`Invalid public key length: ${ephemeralPublicKey.length}, expected ${box.publicKeyLength}`);
+}
+
+function safeEncodeUTF8(bytes: Uint8Array): string {
+  try {
+    return encodeUTF8(bytes);
+  } catch (error) {
+    throw new Error('Failed to encode decrypted message as UTF-8');
+  }
+}
+
+function safeDecodeUTF8(text: string): Uint8Array {
+  try {
+    return decodeUTF8(text);
+  } catch (error) {
+    throw new Error('Failed to decode message for encryption');
   }
 }
 
@@ -41,7 +61,7 @@ export function encryptMessage(message: string, recipientPublicKeyB58: string): 
     const sharedKey = box.before(recipientPublicKey, ephemeralKeypair.secretKey);
 
     // Convert message to Uint8Array and encrypt
-    const messageBytes = decodeUTF8(message);
+    const messageBytes = safeDecodeUTF8(message);
     const encrypted = box.after(messageBytes, nonce, sharedKey);
 
     if (!encrypted) {
@@ -114,7 +134,8 @@ export async function decryptMessage(
       throw new Error('Decryption failed - invalid key or corrupted message');
     }
 
-    const decryptedText = encodeUTF8(decrypted);
+    // Safely convert decrypted bytes to UTF-8 string
+    const decryptedText = safeEncodeUTF8(decrypted);
     console.log('Decryption successful');
     return decryptedText;
   } catch (error) {
