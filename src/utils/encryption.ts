@@ -10,6 +10,9 @@ export interface EncryptedData {
   ephemeralPublicKey: string;
 }
 
+// Message format version for future compatibility
+const MESSAGE_VERSION = 1;
+
 function isValidUTF8(bytes: Uint8Array): boolean {
   try {
     const decoder = new TextDecoder('utf-8', { fatal: true });
@@ -26,6 +29,17 @@ function bytesToHex(bytes: Uint8Array): string {
     .join('');
 }
 
+function concatenateUint8Arrays(...arrays: Uint8Array[]): Uint8Array {
+  const totalLength = arrays.reduce((acc, arr) => acc + arr.length, 0);
+  const result = new Uint8Array(totalLength);
+  let offset = 0;
+  for (const arr of arrays) {
+    result.set(arr, offset);
+    offset += arr.length;
+  }
+  return result;
+}
+
 function validateEncryptedData(data: EncryptedData): void {
   try {
     const ciphertext = decodeBase64(data.ciphertext);
@@ -38,41 +52,49 @@ function validateEncryptedData(data: EncryptedData): void {
     if (ephemeralPublicKey.length !== box.publicKeyLength) {
       throw new Error(`Invalid public key length: ${ephemeralPublicKey.length}, expected ${box.publicKeyLength}`);
     }
+    if (ciphertext.length < 5) { // Version byte + minimum message length
+      throw new Error('Ciphertext too short');
+    }
 
     console.log('Validated encrypted data:');
     console.log('Ciphertext (hex):', bytesToHex(ciphertext));
     console.log('Nonce (hex):', bytesToHex(nonce));
     console.log('Ephemeral Public Key (hex):', bytesToHex(ephemeralPublicKey));
   } catch (error) {
+    console.error('Validation error:', error);
     throw new Error('Invalid base64 encoding in encrypted data');
   }
 }
 
 function safeEncodeUTF8(bytes: Uint8Array): string {
-  // First check if the bytes are valid UTF-8
-  if (!isValidUTF8(bytes)) {
-    console.error('Invalid UTF-8 bytes (hex):', bytesToHex(bytes));
-    throw new Error('Decrypted data is not valid UTF-8');
-  }
-
   try {
-    // Use TextDecoder for more robust UTF-8 decoding
+    // Skip the version byte when decoding the message
+    const messageBytes = bytes.slice(1);
+    
+    if (!isValidUTF8(messageBytes)) {
+      console.error('Invalid UTF-8 bytes (hex):', bytesToHex(messageBytes));
+      throw new Error('Decrypted data is not valid UTF-8');
+    }
+
     const decoder = new TextDecoder('utf-8', { fatal: true });
-    return decoder.decode(bytes);
+    return decoder.decode(messageBytes);
   } catch (error) {
     console.error('UTF-8 decoding error:', error);
-    throw new Error('Failed to encode decrypted message as UTF-8');
+    throw new Error('Failed to decode decrypted message as UTF-8');
   }
 }
 
 function safeDecodeUTF8(text: string): Uint8Array {
   try {
-    // Use TextEncoder for more robust UTF-8 encoding
     const encoder = new TextEncoder();
-    return encoder.encode(text);
+    const messageBytes = encoder.encode(text);
+    
+    // Add version byte to the beginning of the message
+    const versionByte = new Uint8Array([MESSAGE_VERSION]);
+    return concatenateUint8Arrays(versionByte, messageBytes);
   } catch (error) {
     console.error('UTF-8 encoding error:', error);
-    throw new Error('Failed to decode message for encryption');
+    throw new Error('Failed to encode message for encryption');
   }
 }
 
@@ -93,9 +115,9 @@ export function encryptMessage(message: string, recipientPublicKeyB58: string): 
     // Generate shared key using box.before()
     const sharedKey = box.before(recipientPublicKey, ephemeralKeypair.secretKey);
 
-    // Convert message to Uint8Array and encrypt
+    // Convert message to Uint8Array with version byte
     const messageBytes = safeDecodeUTF8(message);
-    console.log('Original message bytes (hex):', bytesToHex(messageBytes));
+    console.log('Original message bytes with version (hex):', bytesToHex(messageBytes));
 
     const encrypted = box.after(messageBytes, nonce, sharedKey);
     if (!encrypted) {
@@ -170,6 +192,13 @@ export async function decryptMessage(
     }
 
     console.log('Decrypted bytes (hex):', bytesToHex(decrypted));
+
+    // Check version byte
+    const version = decrypted[0];
+    if (version !== MESSAGE_VERSION) {
+      console.error('Invalid message version:', version);
+      throw new Error('Unsupported message format version');
+    }
 
     // Safely convert decrypted bytes to UTF-8 string
     const decryptedText = safeEncodeUTF8(decrypted);

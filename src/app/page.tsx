@@ -281,6 +281,10 @@ export default function Home() {
           userMessage += 'Unable to decrypt with your wallet key';
         } else if (errorMessage.includes('Invalid base64')) {
           userMessage += 'The message data appears to be corrupted';
+        } else if (errorMessage.includes('Unsupported message format')) {
+          userMessage += 'This message was encrypted with a different version of the app';
+        } else if (errorMessage.includes('Ciphertext too short')) {
+          userMessage += 'The message data is incomplete';
         } else {
           userMessage += errorMessage;
         }
