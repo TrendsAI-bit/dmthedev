@@ -248,10 +248,9 @@ export default function Home() {
       console.log('Current wallet address:', publicKey.toBase58());
       console.log('Message recipient address:', message.to);
 
-      // Check if wallet supports signing
-      const walletAdapter = wallet as any;
-      if (!walletAdapter.signMessage && !walletAdapter.signTransaction) {
-        alert('Please use a wallet that supports message signing');
+      // Check if wallet is Phantom
+      if (wallet.adapter.name !== 'Phantom') {
+        alert('Please use Phantom wallet for the best experience. Other wallets may not work correctly.');
         return;
       }
 
@@ -261,7 +260,7 @@ export default function Home() {
           nonce: message.nonce,
           ephemeralPublicKey: message.ephemeralPublicKey
         },
-        walletAdapter,
+        wallet.adapter,
         message.to
       );
 
@@ -271,13 +270,22 @@ export default function Home() {
           ...prev,
           [message.id!]: decrypted
         }));
-      } else {
-        console.error('Decryption returned null');
-        alert('Failed to decrypt message. Please make sure you are using the correct wallet.');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Decryption error:', error);
-      alert('Failed to decrypt message. Please make sure you are using the correct wallet.');
+      let errorMessage = 'Failed to decrypt message. ';
+      
+      if (error.message.includes('sign')) {
+        errorMessage += 'Please make sure you approve the signature request.';
+      } else if (error.message.includes('format')) {
+        errorMessage += 'The message format appears to be invalid.';
+      } else if (error.message.includes('wallet')) {
+        errorMessage += 'Please make sure you are using Phantom wallet.';
+      } else {
+        errorMessage += 'Please try again or contact support if the issue persists.';
+      }
+      
+      alert(errorMessage);
     } finally {
       setDecryptingMessageId(null);
     }
