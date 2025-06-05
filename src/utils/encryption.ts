@@ -69,11 +69,16 @@ export function encryptMessage(message: string, recipientPublicKeyB58: string): 
   }
 }
 
-export async function signForDecryption(wallet: any, recipientAddress: string): Promise<Uint8Array> {
+export async function decryptMessage(
+  encryptedData: EncryptedData,
+  wallet: any,
+  recipientAddress: string
+): Promise<string> {
   try {
-    if (!wallet || !wallet.signMessage) {
-      throw new Error('Wallet does not support message signing');
-    }
+    console.log('Starting decryption process...');
+    
+    // Validate the encrypted data format
+    validateEncryptedData(encryptedData);
 
     // Create a fixed message to sign
     const message = new TextEncoder().encode(
@@ -90,33 +95,12 @@ export async function signForDecryption(wallet: any, recipientAddress: string): 
     
     // Use SHA-512 to derive a consistent key from the signature
     const hash = sha512(signatureBytes);
-    const secretKey = new Uint8Array(hash.slice(0, box.secretKeyLength));
+    const secretKey = hash.slice(0, box.secretKeyLength);
     
     if (secretKey.length !== box.secretKeyLength) {
       throw new Error(`Invalid secret key length: ${secretKey.length}, expected ${box.secretKeyLength}`);
     }
 
-    return secretKey;
-  } catch (error) {
-    console.error('Failed to sign message:', error);
-    throw error;
-  }
-}
-
-export async function decryptMessage(
-  encryptedData: EncryptedData,
-  wallet: any,
-  recipientAddress: string
-): Promise<string> {
-  try {
-    console.log('Starting decryption process...');
-    
-    // Validate the encrypted data format
-    validateEncryptedData(encryptedData);
-
-    // Get secret key from wallet signature
-    const secretKey = await signForDecryption(wallet, recipientAddress);
-    
     // Decode the encrypted data
     const ciphertext = decodeBase64(encryptedData.ciphertext);
     const nonce = decodeBase64(encryptedData.nonce);

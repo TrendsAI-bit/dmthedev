@@ -192,24 +192,6 @@ export default function Home() {
     }
   };
 
-  const handleDecryptMessage = async (messageId: string) => {
-    if (!connected || !publicKey) {
-      alert('Please connect your wallet first');
-      return;
-    }
-
-    if (decryptedMessages[messageId]) {
-      return; // Message already decrypted
-    }
-
-    setDecryptionQueue(prev => {
-      if (prev.includes(messageId)) {
-        return prev;
-      }
-      return [...prev, messageId];
-    });
-  };
-
   const fetchMessages = useCallback(async () => {
     if (!publicKey) return;
     
@@ -237,10 +219,17 @@ export default function Home() {
         return;
       }
 
-      setDecryptionInProgress(true);
       const messageId = decryptionQueue[0];
+      
+      // Check if message is already decrypted
+      if (decryptedMessages[messageId]) {
+        setDecryptionQueue(prev => prev.slice(1));
+        return;
+      }
 
       try {
+        setDecryptionInProgress(true);
+
         const message = messages.find(m => m.id === messageId);
         if (!message) {
           throw new Error('Message not found');
@@ -254,11 +243,20 @@ export default function Home() {
           throw new Error('Message not intended for this wallet');
         }
 
-        console.log('Starting decryption process...');
-        console.log('Requesting signature from wallet...');
-
         if (!('signMessage' in wallet.adapter)) {
           throw new Error('Wallet does not support message signing');
+        }
+
+        // Create a fixed message to sign
+        const signMessage = new TextEncoder().encode(
+          `Sign to decrypt message on DM the DEV\nMessage ID: ${messageId}\nWallet: ${message.to}`
+        );
+
+        // Get signature from wallet
+        const signature = await wallet.adapter.signMessage(signMessage);
+        
+        if (!signature) {
+          throw new Error('Failed to get signature');
         }
 
         const decrypted = await decryptMessage(
@@ -271,6 +269,7 @@ export default function Home() {
           message.to
         );
 
+        // Update state in a single batch
         setDecryptedMessages(prev => ({
           ...prev,
           [messageId]: decrypted
@@ -284,9 +283,14 @@ export default function Home() {
       }
     };
 
-    processQueue();
-  }, [decryptionQueue, decryptionInProgress, connected, publicKey, wallet, messages]);
+    // Only process queue if we have items and aren't already processing
+    if (decryptionQueue.length > 0 && !decryptionInProgress) {
+      processQueue();
+    }
 
+  }, [decryptionQueue, decryptionInProgress, connected, publicKey, wallet, messages, decryptedMessages]);
+
+  // Cleanup function
   useEffect(() => {
     return () => {
       setDecryptionQueue([]);
@@ -294,6 +298,23 @@ export default function Home() {
       setDecryptedMessages({});
     };
   }, []);
+
+  const handleDecryptMessage = async (messageId: string) => {
+    if (!connected || !publicKey) {
+      alert('Please connect your wallet first');
+      return;
+    }
+
+    if (decryptedMessages[messageId]) {
+      return; // Message already decrypted
+    }
+
+    if (decryptionQueue.includes(messageId)) {
+      return; // Message already in queue
+    }
+
+    setDecryptionQueue(prev => [...prev, messageId]);
+  };
 
   return (
     <main className="min-h-screen">
