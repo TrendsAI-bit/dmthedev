@@ -4,6 +4,8 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/chat-icon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <meta http-equiv="Content-Security-Policy" content="script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com;">
     <title>DM the DEV - Chat with Token Deployers</title>
     <meta name="description" content="Send encrypted messages to token deployers using Solana wallet" />
     
@@ -15,7 +17,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Comic+Neue:wght@300;400;700&display=swap" rel="stylesheet" />
     
     <!-- Error tracking -->
-    <script>
+    <script type="module">
       window.addEventListener('error', function(event) {
         console.error('Global error:', event.error);
       });
