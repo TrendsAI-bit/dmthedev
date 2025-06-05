@@ -1,0 +1,43 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-white text-black leading-relaxed overflow-x-hidden;
+  }
+}
+
+@layer components {
+  .sketchy-border {
+    @apply border-2 border-black rounded-xl relative;
+  }
+
+  .sketchy-border::before {
+    content: '';
+    @apply absolute -top-[3px] -left-[3px] -right-[3px] -bottom-[3px] border-2 border-black rounded-[18px] -rotate-[0.5deg] -z-10;
+  }
+
+  .wallet-btn {
+    @apply bg-white border-3 border-black py-2 px-4 font-comic font-bold cursor-pointer rotate-1 transition-all duration-300 rounded-lg hover:animate-wobble !important;
+  }
+
+  .wallet-adapter-button {
+    @apply bg-white border-3 border-black py-2 px-4 font-comic font-bold cursor-pointer rotate-1 transition-all duration-300 rounded-lg hover:animate-wobble !important;
+    background: white !important;
+    color: black !important;
+    height: auto !important;
+  }
+
+  .wallet-adapter-button-trigger {
+    background: white !important;
+  }
+
+  .section {
+    @apply my-[60px] p-[30px] border-3 border-black rounded-[20px] bg-white relative rotate-[0.5deg] even:rotate-[-0.5deg];
+  }
+
+  .section-title {
+    @apply text-[1.8rem] font-bold mb-5 underline decoration-wavy underline-offset-[5px];
+  }
+} 

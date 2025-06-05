@@ -1,8 +1,9 @@
 /** @type {import('tailwindcss').Config} */
-export default {
+module.exports = {
   content: [
-    "./index.html",
-    "./src/**/*.{vue,js,ts,jsx,tsx}",
+    "./src/pages/**/*.{js,ts,jsx,tsx,mdx}",
+    "./src/components/**/*.{js,ts,jsx,tsx,mdx}",
+    "./src/app/**/*.{js,ts,jsx,tsx,mdx}",
   ],
   theme: {
     extend: {
@@ -14,17 +15,18 @@ export default {
         'text-secondary': '#666666',
       },
       fontFamily: {
-        'comic': ['Comic Neue', 'sans-serif'],
+        comic: ['Comic Neue', 'Comic Sans MS', 'cursive'],
       },
       animation: {
-        'wiggle': 'wiggle 1s ease-in-out infinite',
+        'wobble': 'wobble 0.5s ease-in-out infinite',
+        'bounce-light': 'bounce 0.5s ease infinite',
       },
       keyframes: {
-        wiggle: {
+        wobble: {
           '0%, 100%': { transform: 'rotate(0deg)' },
-          '25%': { transform: 'rotate(-5deg)' },
-          '75%': { transform: 'rotate(5deg)' },
-        }
+          '25%': { transform: 'rotate(1deg)' },
+          '75%': { transform: 'rotate(-1deg)' },
+        },
       },
       borderRadius: {
         'bubble': '15px',
@@ -32,6 +34,9 @@ export default {
       boxShadow: {
         'cartoon': '3px 3px 0 #333333',
         'cartoon-hover': '5px 5px 0 #333333',
+      },
+      borderWidth: {
+        '3': '3px',
       }
     },
   },
