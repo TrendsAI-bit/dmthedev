@@ -25,18 +25,38 @@
     </nav>
 
     <main class="container mx-auto p-4">
-      <router-view></router-view>
+      <router-view v-slot="{ Component }">
+        <suspense>
+          <template #default>
+            <component :is="Component" />
+          </template>
+          <template #fallback>
+            <div class="text-center py-8">
+              <p class="text-lg text-text-secondary">Loading...</p>
+            </div>
+          </template>
+        </suspense>
+      </router-view>
     </main>
   </div>
 </template>
 
 <script setup lang="ts">
+import { onErrorCaptured } from 'vue'
 import { useAuthStore } from './stores/auth'
 import { storeToRefs } from 'pinia'
 
 const authStore = useAuthStore()
 const { isAuthenticated } = storeToRefs(authStore)
 const { logout } = authStore
+
+// Error handling
+onErrorCaptured((error, instance, info) => {
+  console.error('Component error:', error)
+  console.error('Component instance:', instance)
+  console.error('Error info:', info)
+  return false // Prevent error from propagating
+})
 </script>
 
 <style>

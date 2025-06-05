@@ -14,17 +14,40 @@
     <!-- Comic Neue Font -->
     <link href="https://fonts.googleapis.com/css2?family=Comic+Neue:wght@300;400;700&display=swap" rel="stylesheet" />
     
-    <!-- Phantom Wallet Detection -->
+    <!-- Error tracking -->
     <script>
+      window.addEventListener('error', function(event) {
+        console.error('Global error:', event.error);
+      });
+
+      window.addEventListener('unhandledrejection', function(event) {
+        console.error('Unhandled promise rejection:', event.reason);
+      });
+
+      // Phantom Wallet Detection
       window.addEventListener('load', function() {
         if (!window.solana) {
           console.log('Phantom wallet is not installed');
+        } else {
+          console.log('Phantom wallet detected');
         }
       });
     </script>
   </head>
   <body>
-    <div id="app"></div>
+    <div id="app">
+      <!-- Loading state -->
+      <div style="
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        text-align: center;
+        font-family: 'Comic Neue', sans-serif;
+      ">
+        Loading DM the DEV...
+      </div>
+    </div>
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html> 
