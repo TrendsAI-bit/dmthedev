@@ -275,14 +275,14 @@ export default function Home() {
         const errorMessage = error.message || 'Unknown error occurred';
         let userMessage = 'Failed to decrypt message: ';
 
-        if (errorMessage.includes('not valid UTF-8')) {
+        if (errorMessage.includes('Legacy message data is not valid')) {
+          userMessage += 'Unable to read the message content (legacy format)';
+        } else if (errorMessage.includes('not valid UTF-8')) {
           userMessage += 'The message appears to be corrupted (invalid text format)';
         } else if (errorMessage.includes('invalid key')) {
           userMessage += 'Unable to decrypt with your wallet key';
         } else if (errorMessage.includes('Invalid base64')) {
           userMessage += 'The message data appears to be corrupted';
-        } else if (errorMessage.includes('Unsupported message format')) {
-          userMessage += 'This message was encrypted with a different version of the app';
         } else if (errorMessage.includes('Ciphertext too short')) {
           userMessage += 'The message data is incomplete';
         } else {

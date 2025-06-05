@@ -12,6 +12,7 @@ export interface EncryptedData {
 
 // Message format version for future compatibility
 const MESSAGE_VERSION = 1;
+const LEGACY_MESSAGE_MARKER = 0x2b; // ASCII '+'
 
 function isValidUTF8(bytes: Uint8Array): boolean {
   try {
@@ -52,9 +53,6 @@ function validateEncryptedData(data: EncryptedData): void {
     if (ephemeralPublicKey.length !== box.publicKeyLength) {
       throw new Error(`Invalid public key length: ${ephemeralPublicKey.length}, expected ${box.publicKeyLength}`);
     }
-    if (ciphertext.length < 5) { // Version byte + minimum message length
-      throw new Error('Ciphertext too short');
-    }
 
     console.log('Validated encrypted data:');
     console.log('Ciphertext (hex):', bytesToHex(ciphertext));
@@ -66,18 +64,25 @@ function validateEncryptedData(data: EncryptedData): void {
   }
 }
 
-function safeEncodeUTF8(bytes: Uint8Array): string {
+function safeEncodeUTF8(bytes: Uint8Array, isLegacy: boolean = false): string {
   try {
-    // Skip the version byte when decoding the message
+    // For legacy messages or if the first byte looks like a legacy message
+    if (isLegacy || bytes[0] === LEGACY_MESSAGE_MARKER) {
+      if (!isValidUTF8(bytes)) {
+        console.error('Invalid UTF-8 bytes (hex):', bytesToHex(bytes));
+        throw new Error('Legacy message data is not valid UTF-8');
+      }
+      return new TextDecoder('utf-8', { fatal: true }).decode(bytes);
+    }
+
+    // For versioned messages, skip the version byte
     const messageBytes = bytes.slice(1);
-    
     if (!isValidUTF8(messageBytes)) {
       console.error('Invalid UTF-8 bytes (hex):', bytesToHex(messageBytes));
       throw new Error('Decrypted data is not valid UTF-8');
     }
 
-    const decoder = new TextDecoder('utf-8', { fatal: true });
-    return decoder.decode(messageBytes);
+    return new TextDecoder('utf-8', { fatal: true }).decode(messageBytes);
   } catch (error) {
     console.error('UTF-8 decoding error:', error);
     throw new Error('Failed to decode decrypted message as UTF-8');
@@ -193,15 +198,12 @@ export async function decryptMessage(
 
     console.log('Decrypted bytes (hex):', bytesToHex(decrypted));
 
-    // Check version byte
-    const version = decrypted[0];
-    if (version !== MESSAGE_VERSION) {
-      console.error('Invalid message version:', version);
-      throw new Error('Unsupported message format version');
-    }
+    // Check if this is a legacy message (no version byte or starts with common text characters)
+    const firstByte = decrypted[0];
+    const isLegacy = firstByte >= 32 && firstByte <= 126; // ASCII printable characters
 
     // Safely convert decrypted bytes to UTF-8 string
-    const decryptedText = safeEncodeUTF8(decrypted);
+    const decryptedText = safeEncodeUTF8(decrypted, isLegacy);
     console.log('Decryption successful');
     return decryptedText;
   } catch (error) {
