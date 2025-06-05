@@ -21,9 +21,6 @@ function validateEncryptedData(data: EncryptedData): void {
   if (ephemeralPublicKey.length !== box.publicKeyLength) {
     throw new Error(`Invalid public key length: ${ephemeralPublicKey.length}, expected ${box.publicKeyLength}`);
   }
-  if (ciphertext.length <= 16) {
-    throw new Error(`Invalid ciphertext length: ${ciphertext.length}, expected > 16`);
-  }
 }
 
 export function encryptMessage(message: string, recipientPublicKeyB58: string): EncryptedData {
@@ -40,14 +37,12 @@ export function encryptMessage(message: string, recipientPublicKeyB58: string): 
     // Generate random nonce
     const nonce = randomBytes(box.nonceLength);
 
+    // Generate shared key using box.before()
+    const sharedKey = box.before(recipientPublicKey, ephemeralKeypair.secretKey);
+
     // Convert message to Uint8Array and encrypt
     const messageBytes = decodeUTF8(message);
-    const encrypted = box(
-      messageBytes,
-      nonce,
-      recipientPublicKey,
-      ephemeralKeypair.secretKey
-    );
+    const encrypted = box.after(messageBytes, nonce, sharedKey);
 
     if (!encrypted) {
       throw new Error('Encryption failed');
@@ -95,30 +90,25 @@ export async function decryptMessage(
     
     // Use SHA-512 to derive a consistent key from the signature
     const hash = sha512(signatureBytes);
-    const secretKey = hash.slice(0, box.secretKeyLength);
-    
-    if (secretKey.length !== box.secretKeyLength) {
-      throw new Error(`Invalid secret key length: ${secretKey.length}, expected ${box.secretKeyLength}`);
-    }
+    const secretKey = new Uint8Array(hash.slice(0, box.secretKeyLength));
 
     // Decode the encrypted data
     const ciphertext = decodeBase64(encryptedData.ciphertext);
     const nonce = decodeBase64(encryptedData.nonce);
     const ephemeralPublicKey = decodeBase64(encryptedData.ephemeralPublicKey);
 
+    // Generate shared key using box.before()
+    const sharedKey = box.before(ephemeralPublicKey, secretKey);
+
     console.log('Decryption attempt with:');
     console.log('Ciphertext length:', ciphertext.length);
     console.log('Nonce length:', nonce.length);
     console.log('Ephemeral public key length:', ephemeralPublicKey.length);
     console.log('Secret key length:', secretKey.length);
+    console.log('Shared key length:', sharedKey.length);
 
-    // Attempt decryption
-    const decrypted = box.open(
-      ciphertext,
-      nonce,
-      ephemeralPublicKey,
-      secretKey
-    );
+    // Attempt decryption using box.after()
+    const decrypted = box.after(ciphertext, nonce, sharedKey);
 
     if (!decrypted) {
       throw new Error('Decryption failed - invalid key or corrupted message');

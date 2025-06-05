@@ -247,18 +247,6 @@ export default function Home() {
           throw new Error('Wallet does not support message signing');
         }
 
-        // Create a fixed message to sign
-        const signMessage = new TextEncoder().encode(
-          `Sign to decrypt message on DM the DEV\nMessage ID: ${messageId}\nWallet: ${message.to}`
-        );
-
-        // Get signature from wallet
-        const signature = await wallet.adapter.signMessage(signMessage);
-        
-        if (!signature) {
-          throw new Error('Failed to get signature');
-        }
-
         const decrypted = await decryptMessage(
           {
             ciphertext: message.ciphertext,
@@ -275,8 +263,10 @@ export default function Home() {
           [messageId]: decrypted
         }));
 
-      } catch (error) {
+      } catch (error: any) {
         console.error('Decryption error:', error);
+        // Show error message to user
+        alert(`Failed to decrypt message: ${error.message}`);
       } finally {
         setDecryptionQueue(prev => prev.slice(1));
         setDecryptionInProgress(false);
@@ -311,6 +301,10 @@ export default function Home() {
 
     if (decryptionQueue.includes(messageId)) {
       return; // Message already in queue
+    }
+
+    if (decryptionInProgress) {
+      return; // Already processing another message
     }
 
     setDecryptionQueue(prev => [...prev, messageId]);
