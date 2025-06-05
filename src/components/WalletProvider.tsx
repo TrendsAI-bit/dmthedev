@@ -2,8 +2,7 @@
 
 import { FC, ReactNode, useMemo, useCallback } from 'react';
 import { ConnectionProvider, WalletProvider } from '@solana/wallet-adapter-react';
-import { WalletModalProvider, WalletMultiButton } from '@solana/wallet-adapter-react-ui';
-import { PhantomWalletAdapter } from '@solana/wallet-adapter-wallets';
+import { WalletModalProvider } from '@solana/wallet-adapter-react-ui';
 import { WalletError } from '@solana/wallet-adapter-base';
 import '@solana/wallet-adapter-react-ui/styles.css';
 
@@ -14,12 +13,8 @@ interface Props {
 }
 
 export const ClientWalletProvider: FC<Props> = ({ children }) => {
-  const wallets = useMemo(
-    () => [
-      new PhantomWalletAdapter(),
-    ],
-    []
-  );
+  // Empty wallets array since we're using Wallet Standard
+  const wallets = useMemo(() => [], []);
 
   const onError = useCallback(
     (error: WalletError) => {

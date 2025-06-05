@@ -32,6 +32,7 @@ export default function Home() {
   const [messages, setMessages] = useState<EncryptedMessage[]>([]);
   const [decryptingMessageId, setDecryptingMessageId] = useState<string | null>(null);
   const [decryptedMessages, setDecryptedMessages] = useState<Record<string, string>>({});
+  const [decryptionQueue, setDecryptionQueue] = useState<string[]>([]);
 
   const handleFindDeployer = async () => {
     if (!tokenAddress) return;
@@ -227,8 +228,20 @@ export default function Home() {
     } else {
       setMessages([]);
       setDecryptedMessages({});
+      setDecryptionQueue([]);
     }
-  }, [publicKey, fetchMessages]);
+  }, [publicKey]);
+
+  useEffect(() => {
+    if (decryptionQueue.length > 0 && !decryptingMessageId) {
+      const messageId = decryptionQueue[0];
+      const message = messages.find(m => m.id === messageId);
+      if (message) {
+        handleDecrypt(message);
+      }
+      setDecryptionQueue(prev => prev.slice(1));
+    }
+  }, [decryptionQueue, decryptingMessageId, messages]);
 
   const handleDecrypt = async (message: EncryptedMessage) => {
     if (!publicKey || !wallet) {
@@ -239,6 +252,12 @@ export default function Home() {
     // Verify the message is intended for this wallet
     if (message.to !== publicKey.toBase58()) {
       alert('This message is not intended for your wallet address');
+      return;
+    }
+
+    // If already decrypting, add to queue
+    if (decryptingMessageId) {
+      setDecryptionQueue(prev => [...prev, message.id!]);
       return;
     }
 
