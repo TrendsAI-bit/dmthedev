@@ -1,8 +1,8 @@
-import { box, randomBytes, secretbox } from 'tweetnacl';
+import { box, randomBytes } from 'tweetnacl';
 import { decodeUTF8, encodeUTF8, encodeBase64, decodeBase64 } from 'tweetnacl-util';
 import { PublicKey } from '@solana/web3.js';
 import bs58 from 'bs58';
-import { sha512 } from '@noble/hashes/sha512';
+import { sha256 } from '@noble/hashes/sha256';
 
 export interface EncryptedData {
   ciphertext: string;
@@ -10,37 +10,41 @@ export interface EncryptedData {
   ephemeralPublicKey: string;
 }
 
+function generateDeterministicKeyPair(seed: Uint8Array): { publicKey: Uint8Array; secretKey: Uint8Array } {
+  // Use the first 32 bytes of the seed for the secret key
+  const secretKey = sha256(seed);
+  const keyPair = box.keyPair.fromSecretKey(new Uint8Array(secretKey));
+  return keyPair;
+}
+
 export function encryptMessage(message: string, recipientPublicKeyB58: string): EncryptedData {
   try {
-    console.log('Encrypting message for:', recipientPublicKeyB58);
-    
-    // Generate ephemeral keypair and nonce
+    // Generate ephemeral keypair
     const ephemeralKeyPair = box.keyPair();
     const nonce = randomBytes(box.nonceLength);
-    
-    // Convert recipient public key
-    const recipientPubKey = new PublicKey(recipientPublicKeyB58).toBytes();
-    
+
+    // Convert recipient public key from base58 to Uint8Array
+    const recipientPubKey = bs58.decode(recipientPublicKeyB58);
+
     // Encrypt the message
     const messageUint8 = decodeUTF8(message);
-    const encryptedMessage = box(
+    const encrypted = box(
       messageUint8,
       nonce,
       recipientPubKey,
       ephemeralKeyPair.secretKey
     );
 
-    if (!encryptedMessage) {
+    if (!encrypted) {
       throw new Error('Encryption failed');
     }
 
-    const result = {
-      ciphertext: encodeBase64(encryptedMessage),
+    // Return base64 encoded values
+    return {
+      ciphertext: encodeBase64(encrypted),
       nonce: encodeBase64(nonce),
       ephemeralPublicKey: encodeBase64(ephemeralKeyPair.publicKey)
     };
-
-    return result;
   } catch (error) {
     console.error('Encryption error:', error);
     throw error;
@@ -53,29 +57,22 @@ export async function signForDecryption(wallet: any, recipientAddress: string): 
       throw new Error('Wallet does not support message signing');
     }
 
-    // Create a deterministic message
+    // Create a fixed message to sign
     const message = new TextEncoder().encode(
-      `Sign to decrypt messages on DM the DEV\nWallet: ${recipientAddress}`
+      `DM the DEV: Sign to decrypt messages\nWallet: ${recipientAddress}`
     );
 
     console.log('Requesting signature from wallet...');
     
-    let signature: Uint8Array;
-    try {
-      // Try Phantom's specific signing method
-      const sig = await wallet.signMessage(message);
-      signature = sig instanceof Uint8Array ? sig : bs58.decode(sig);
-    } catch (err) {
-      console.error('Signing failed:', err);
-      throw new Error('Failed to sign message with wallet');
-    }
+    // Get signature from wallet
+    const signature = await wallet.signMessage(message);
+    const signatureBytes = signature instanceof Uint8Array ? signature : bs58.decode(signature);
 
-    // Derive a deterministic key from the signature using SHA-512
-    const hashedSignature = sha512(signature);
-    const secretKey = hashedSignature.slice(0, 32); // Use first 32 bytes for the key
+    // Generate deterministic keypair from signature
+    const keyPair = generateDeterministicKeyPair(signatureBytes);
+    console.log('Generated key pair successfully');
     
-    console.log('Derived secret key length:', secretKey.length);
-    return new Uint8Array(secretKey);
+    return keyPair.secretKey;
   } catch (error) {
     console.error('Failed to sign message:', error);
     throw error;
@@ -88,7 +85,7 @@ export async function decryptMessage(
   recipientAddress: string
 ): Promise<string> {
   try {
-    console.log('Starting decryption for recipient:', recipientAddress);
+    console.log('Starting decryption process...');
     
     // Input validation
     if (!encryptedData?.ciphertext || !encryptedData?.nonce || !encryptedData?.ephemeralPublicKey) {
@@ -114,7 +111,7 @@ export async function decryptMessage(
       throw new Error('Invalid public key length');
     }
 
-    console.log('Attempting decryption with:');
+    console.log('Decryption attempt with:');
     console.log('Ciphertext length:', ciphertext.length);
     console.log('Nonce length:', nonce.length);
     console.log('Ephemeral public key length:', ephemeralPublicKey.length);
@@ -132,7 +129,9 @@ export async function decryptMessage(
       throw new Error('Decryption failed - invalid key or corrupted message');
     }
 
-    return encodeUTF8(decrypted);
+    const decryptedText = encodeUTF8(decrypted);
+    console.log('Decryption successful');
+    return decryptedText;
   } catch (error) {
     console.error('Decryption failed:', error);
     throw error;
