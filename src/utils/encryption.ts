@@ -155,33 +155,31 @@ function fromBase64(base64: string): Uint8Array {
 
 export async function encryptMessage(message: string, recipientPublicKey: string): Promise<EncryptedData> {
   try {
-    console.log("Starting encryption process");
+    console.log("Starting v2 encryption process");
     
-    // Validate input
     if (!message) throw new Error("Message cannot be empty");
     if (!recipientPublicKey) throw new Error("Recipient public key is required");
 
-    // Convert message to bytes if not already
-    const messageBytes = typeof message === 'string' 
-      ? new TextEncoder().encode(message)
-      : message;
+    // Wrap the message in a versioned JSON object for robustness.
+    const messageToEncrypt = JSON.stringify({
+      v: 2,
+      data: message,
+    });
 
-    // Perform encryption
+    const messageBytes = new TextEncoder().encode(messageToEncrypt);
     const encrypted = await performEncryption(messageBytes, recipientPublicKey);
     
-    // Ensure all components are properly base64 encoded
     const result = {
       ciphertext: toBase64(encrypted.ciphertext),
       nonce: toBase64(encrypted.nonce),
       ephemeralPublicKey: toBase64(encrypted.ephemeralPublicKey)
     };
 
-    // Validate result
     if (!isBase64(result.ciphertext) || !isBase64(result.nonce) || !isBase64(result.ephemeralPublicKey)) {
       throw new Error("Invalid base64 encoding in encryption result");
     }
 
-    console.log("✅ Encryption completed successfully");
+    console.log("✅ v2 Encryption completed successfully");
     return result;
   } catch (error) {
     console.error("Encryption failed:", error);

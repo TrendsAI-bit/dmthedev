@@ -33,11 +33,27 @@ export default function DecryptedMessage({ encryptedData, wallet, recipientAddre
         
         let result: string;
         try {
-          result = new TextDecoder("utf-8", { fatal: true }).decode(decryptedUint8Array);
-          console.log("✅ Successfully decoded as UTF-8");
+          // First, always try to decode the raw bytes as a UTF-8 string.
+          const decodedText = new TextDecoder("utf-8", { fatal: true }).decode(decryptedUint8Array);
+          console.log("✅ Successfully decoded raw bytes to string");
+
+          try {
+            // If decoding succeeds, check if it's our versioned JSON.
+            const parsed = JSON.parse(decodedText);
+            if (parsed && parsed.v === 2 && typeof parsed.data === 'string') {
+              console.log("✅ Decoded v2 message format");
+              result = parsed.data; // It's our new format, just use the data.
+            } else {
+              result = decodedText; // It's some other JSON, show it all.
+            }
+          } catch (e) {
+            // It's not JSON, so it's likely a legacy plaintext message.
+            console.log("ℹ️ Decoded legacy plaintext message");
+            result = decodedText;
+          }
         } catch (e) {
-          console.warn("⚠️ UTF-8 decoding failed, returning as base64");
-          // Fallback to base64 for binary data
+          console.warn("⚠️ UTF-8 decoding failed, falling back to base64");
+          // This happens if the decrypted data is not valid text.
           const B64_CHUNK_SIZE = 8192;
           let base64 = "";
           for (let i = 0; i < decryptedUint8Array.length; i += B64_CHUNK_SIZE) {
@@ -46,7 +62,7 @@ export default function DecryptedMessage({ encryptedData, wallet, recipientAddre
                   Array.from(decryptedUint8Array.subarray(i, i + B64_CHUNK_SIZE))
               );
           }
-          result = btoa(base64);
+          result = `[Raw Binary Data]\n${btoa(base64)}`;
         }
 
         setOutput(result);
@@ -89,18 +105,16 @@ export default function DecryptedMessage({ encryptedData, wallet, recipientAddre
   let displayOutput = output;
   let style = 'bg-gray-100';
 
-  if (isJson) {
+  if (output.startsWith('[Raw Binary Data]')) {
+    style = 'bg-yellow-50 text-yellow-800 font-mono';
+    displayOutput = output;
+  } else if (isJson) {
       try {
-          // Format JSON nicely
           displayOutput = JSON.stringify(JSON.parse(output), null, 2);
           style = 'bg-blue-50 text-blue-800 font-mono';
       } catch (e) {
           // Not valid JSON, treat as text
       }
-  } else if (/[^\x20-\x7E\n\r]/.test(output)) {
-      // If it contains non-printable characters, it might be base64 binary
-      style = 'bg-yellow-50 text-yellow-800 font-mono';
-      displayOutput = `[Binary Data - Base64]\n${output}`;
   }
 
 

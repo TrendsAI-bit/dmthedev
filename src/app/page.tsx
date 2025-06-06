@@ -308,9 +308,18 @@ export default function Home() {
       
       let result: string;
       try {
-        result = new TextDecoder("utf-8", { fatal: true }).decode(decryptedBytes);
+        const decodedText = new TextDecoder("utf-8", { fatal: true }).decode(decryptedBytes);
+        try {
+          const parsed = JSON.parse(decodedText);
+          if (parsed && parsed.v === 2 && typeof parsed.data === 'string') {
+            result = parsed.data;
+          } else {
+            result = decodedText;
+          }
+        } catch (e) {
+          result = decodedText;
+        }
       } catch (e) {
-        // Fallback to base64 for binary data
         const B64_CHUNK_SIZE = 8192;
         let base64 = "";
         for (let i = 0; i < decryptedBytes.length; i += B64_CHUNK_SIZE) {
@@ -319,7 +328,7 @@ export default function Home() {
                 Array.from(decryptedBytes.subarray(i, i + B64_CHUNK_SIZE))
             );
         }
-        result = btoa(base64);
+        result = `[Raw Binary Data]\n${btoa(base64)}`;
       }
       setDecryptedMessage(result);
 
