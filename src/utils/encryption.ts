@@ -47,8 +47,9 @@ function safeDecryptToString(decryptedBytes: Uint8Array | null): string {
     
     // Check if it might be binary data
     if (decryptedBytes.length > 0) {
-      const base64Preview = bytesToBase64(decryptedBytes).slice(0, 20);
-      return `[⚠️ Binary data (${decryptedBytes.length} bytes): ${base64Preview}...]`;
+      const base64Data = bytesToBase64(decryptedBytes);
+      const previewLength = Math.min(20, base64Data.length);
+      return `[⚠️ Binary data (${decryptedBytes.length} bytes): ${base64Data.slice(0, previewLength)}...]`;
     }
     
     return '[❌ Invalid data format]';

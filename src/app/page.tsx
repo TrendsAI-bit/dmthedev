@@ -236,8 +236,8 @@ export default function Home() {
       return;
     }
 
-    // Don't decrypt if already decrypted and successful
-    if (decryptedMessages[messageId] && !decryptedMessages[messageId].startsWith('[')) {
+    // Don't decrypt if already decrypted and not an error
+    if (decryptedMessages[messageId] && !decryptedMessages[messageId].startsWith('[❌')) {
       return;
     }
 
@@ -263,7 +263,7 @@ export default function Home() {
         throw new Error('Your wallet does not support message decryption');
       }
 
-      // Attempt decryption
+      // Decrypt the message
       const decrypted = await decryptMessage(
         {
           ciphertext: message.ciphertext,
