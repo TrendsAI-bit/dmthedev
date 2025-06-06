@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, memo } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
 import { getTokenData } from '@/utils/helius';
@@ -31,15 +31,6 @@ export default function Home() {
   const [activeTab, setActiveTab] = useState<'send' | 'decrypt'>('send');
   const [messages, setMessages] = useState<EncryptedMessage[]>([]);
   const [decryptedMessages, setDecryptedMessages] = useState<Record<string, string>>({});
-  const [isDecrypting, setIsDecrypting] = useState<Record<string, boolean>>({});
-
-  // Cleanup effect when component unmounts
-  useEffect(() => {
-    return () => {
-      setDecryptedMessages({});
-      setIsDecrypting({});
-    };
-  }, []);
 
   const handleFindDeployer = async () => {
     if (!tokenAddress) return;
@@ -219,6 +210,8 @@ export default function Home() {
           const fetchedMessages = await fetchMessagesForDeployer(publicKey.toBase58());
           if (mounted) {
             setMessages(fetchedMessages);
+            // Clear decrypted messages when loading new ones
+            setDecryptedMessages({});
           }
         } catch (error) {
           console.error('Failed to fetch messages:', error);
@@ -243,10 +236,16 @@ export default function Home() {
       return;
     }
 
-    // Don't decrypt if already decrypted or in progress
-    if (decryptedMessages[messageId] || isDecrypting[messageId]) {
+    // Don't decrypt if already decrypted and successful
+    if (decryptedMessages[messageId] && !decryptedMessages[messageId].startsWith('[')) {
       return;
     }
+
+    // Set loading state
+    setDecryptedMessages(prev => ({
+      ...prev,
+      [messageId]: '[🔄 Decrypting...]'
+    }));
 
     try {
       const message = messages.find(m => m.id === messageId);
@@ -256,26 +255,15 @@ export default function Home() {
 
       // Verify message recipient
       if (message.to !== publicKey.toBase58()) {
-        throw new Error('Message not intended for this wallet');
+        throw new Error('This message is not intended for your wallet');
       }
 
-      // Set decryption in progress
-      setIsDecrypting(prev => ({ ...prev, [messageId]: true }));
+      // Verify wallet supports signing
+      if (!('signMessage' in wallet.adapter)) {
+        throw new Error('Your wallet does not support message decryption');
+      }
 
-      console.log('=== DECRYPTION DEBUG START ===');
-      console.log('MessageID:', messageId);
-      console.log('Wallet:', publicKey.toBase58());
-      console.log('Message Data:', {
-        from: message.from,
-        to: message.to,
-        createdAt: message.createdAt,
-        ciphertext: message.ciphertext,
-        nonce: message.nonce,
-        ephemeralPublicKey: message.ephemeralPublicKey
-      });
-      console.log('=== DECRYPTION DEBUG END ===');
-
-      // Decrypt the message
+      // Attempt decryption
       const decrypted = await decryptMessage(
         {
           ciphertext: message.ciphertext,
@@ -291,67 +279,45 @@ export default function Home() {
         ...prev,
         [messageId]: decrypted
       }));
+
     } catch (error: any) {
       console.error('Decryption error:', error);
-      alert(`Failed to decrypt message: ${error.message}`);
-    } finally {
-      // Clear decryption in progress state
-      setIsDecrypting(prev => {
-        const newState = { ...prev };
-        delete newState[messageId];
-        return newState;
-      });
+      const errorMessage = error.message || 'Failed to decrypt';
+      setDecryptedMessages(prev => ({
+        ...prev,
+        [messageId]: `[❌ Error: ${errorMessage}]`
+      }));
     }
-  }, [connected, publicKey, wallet, messages, decryptedMessages, isDecrypting]);
+  }, [connected, publicKey, wallet, messages, decryptedMessages]);
 
   // Message display component
-  const MessageDisplay = memo(({ message }: { message: EncryptedMessage }) => {
-    const isDecryptingMessage = isDecrypting[message.id!];
-    const decryptedContent = decryptedMessages[message.id!];
+  const MessageDisplay = ({ message }: { message: string }) => {
+    const [displayText, setDisplayText] = useState<string>('[Encrypted data]');
+    
+    useEffect(() => {
+      if (!message || typeof message !== 'string') {
+        setDisplayText('[Invalid message format]');
+        return;
+      }
+
+      // Handle error and binary messages immediately
+      if (message.startsWith('[❌') || message.startsWith('[⚠️')) {
+        setDisplayText(message);
+        return;
+      }
+
+      // Set the actual message after mount
+      setDisplayText(message);
+    }, [message]);
 
     return (
-      <div key={message.id} className="border-3 border-black rounded-xl p-4 bg-white">
-        <div className="flex justify-between items-start mb-2">
-          <div>
-            <div className="font-bold">From: {message.from.slice(0, 4)}...{message.from.slice(-4)}</div>
-            <div className="text-sm text-gray-600">
-              {new Date(message.createdAt).toLocaleString()}
-            </div>
-          </div>
-          {message.tipAmount > 0 && (
-            <div className="bg-yellow-100 px-3 py-1 rounded-full text-sm">
-              +{message.tipAmount} SOL
-            </div>
-          )}
-        </div>
-        
-        {decryptedContent ? (
-          <div className="mt-2 p-3 bg-gray-100 rounded-lg font-comic break-words">
-            {decryptedContent}
-          </div>
-        ) : (
-          <button
-            onClick={() => handleDecryptMessage(message.id!)}
-            disabled={isDecryptingMessage}
-            className="w-full mt-2 py-2 px-4 border-2 border-black rounded-lg bg-white hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {isDecryptingMessage ? '🔄 Decrypting...' : '🔑 Decrypt Message'}
-          </button>
-        )}
-        
-        {message.txSig && (
-          <a
-            href={`https://solscan.io/tx/${message.txSig}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-xs text-blue-600 hover:underline mt-2 block"
-          >
-            View transaction ↗
-          </a>
-        )}
+      <div className={`mt-2 p-3 rounded-lg ${
+        displayText.startsWith('[') ? 'bg-red-50 font-mono text-sm break-all' : 'bg-gray-100 font-comic break-words'
+      }`}>
+        {displayText}
       </div>
     );
-  });
+  };
 
   return (
     <main className="min-h-screen">
@@ -538,7 +504,44 @@ export default function Home() {
                 </div>
               ) : (
                 messages.map((msg) => (
-                  <MessageDisplay key={msg.id} message={msg} />
+                  <div key={msg.id} className="border-3 border-black rounded-xl p-4 bg-white">
+                    <div className="flex justify-between items-start mb-2">
+                      <div>
+                        <div className="font-bold">From: {msg.from.slice(0, 4)}...{msg.from.slice(-4)}</div>
+                        <div className="text-sm text-gray-600">
+                          {msg.createdAt ? new Date(msg.createdAt).toLocaleString() : 'Unknown date'}
+                        </div>
+                      </div>
+                      {(msg.tipAmount || 0) > 0 && (
+                        <div className="bg-yellow-100 px-3 py-1 rounded-full text-sm">
+                          +{msg.tipAmount} SOL
+                        </div>
+                      )}
+                    </div>
+                    
+                    {decryptedMessages[msg.id!] ? (
+                      <MessageDisplay message={decryptedMessages[msg.id!]} />
+                    ) : (
+                      <button
+                        onClick={() => handleDecryptMessage(msg.id!)}
+                        className="w-full mt-2 py-2 px-4 border-2 border-black rounded-lg bg-white hover:bg-gray-50 transition-colors"
+                        disabled={!connected}
+                      >
+                        {connected ? '🔑 Decrypt Message' : '🔒 Connect Wallet to Decrypt'}
+                      </button>
+                    )}
+                    
+                    {msg.txSig && (
+                      <a
+                        href={`https://solscan.io/tx/${msg.txSig}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs text-blue-600 hover:underline mt-2 block"
+                      >
+                        View transaction ↗
+                      </a>
+                    )}
+                  </div>
                 ))
               )}
             </div>
