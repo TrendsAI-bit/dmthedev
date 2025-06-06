@@ -1,127 +1,166 @@
-import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { createClient } from '@supabase/supabase-js';
 
-let supabaseInstance: SupabaseClient | null = null;
-
-export function getSupabaseClient() {
-  if (supabaseInstance) {
-    return supabaseInstance;
-  }
-  
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
-
-  if (!supabaseUrl || !supabaseKey) {
-    // This will now only be thrown when the function is called, not during build time.
-    throw new Error('Supabase URL and Key are not set in environment variables.');
-  }
-
-  supabaseInstance = createClient(supabaseUrl, supabaseKey);
-  return supabaseInstance;
+if (!process.env.NEXT_PUBLIC_SUPABASE_URL) {
+  throw new Error('Missing NEXT_PUBLIC_SUPABASE_URL environment variable');
 }
 
-export interface EncryptedMessage {
-  id?: string;
-  senderAddress: string;
-  recipientAddress: string;
+if (!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+  throw new Error('Missing NEXT_PUBLIC_SUPABASE_ANON_KEY environment variable');
+}
+
+// Create Supabase client
+export const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+);
+
+export interface Message {
+  id: string;
+  sender_address: string;
+  recipient_address: string;
   ciphertext: string;
   nonce: string;
-  ephemeralPublicKey: string;
-  createdAt?: string;
+  ephemeral_public_key: string;
+  created_at: string;
 }
 
-// Add validation for base64 strings with proper error messages
-function validateBase64(str: string, fieldName: string): boolean {
-  if (!str) {
-    throw new Error(`${fieldName} is empty`);
-  }
-  
-  // Check if it's valid base64
-  const base64Regex = /^[A-Za-z0-9+/]*={0,2}$/;
-  if (!base64Regex.test(str)) {
-    throw new Error(`${fieldName} contains invalid base64 characters`);
-  }
-  
-  // Check if length is valid (must be multiple of 4)
-  if (str.length % 4 !== 0) {
-    throw new Error(`${fieldName} has invalid length for base64`);
-  }
-  
-  return true;
+export interface RecipientKey {
+  wallet_address: string;
+  derived_pubkey: string;
+  created_at: string;
 }
 
-export async function uploadMessage(message: EncryptedMessage): Promise<void> {
+/**
+ * 🔑 Store or update a recipient's derived public key
+ */
+export async function upsertRecipientKey(walletAddress: string, derivedPubkey: string): Promise<{ error: any }> {
   try {
-    // Enhanced validation with better error messages
-    console.log('Validating message components:');
+    console.log("💾 Storing recipient key for:", walletAddress);
     
-    try {
-      validateBase64(message.ciphertext, 'Ciphertext');
-      validateBase64(message.nonce, 'Nonce');
-      validateBase64(message.ephemeralPublicKey, 'Ephemeral public key');
-    } catch (e) {
-      console.error('Base64 validation failed:', e);
-      throw e;
-    }
-
-    // Validate addresses
-    if (!message.senderAddress || !message.recipientAddress) {
-      throw new Error('Sender and recipient addresses are required');
-    }
-
-    // Log successful validation
-    console.log('✅ All components validated');
-
-    const supabase = getSupabaseClient();
     const { error } = await supabase
-      .from('messages')
-      .insert({
-        sender_address: message.senderAddress,
-        recipient_address: message.recipientAddress,
-        ciphertext: message.ciphertext,
-        nonce: message.nonce,
-        ephemeral_public_key: message.ephemeralPublicKey
+      .from('recipient_keys')
+      .upsert({ 
+        wallet_address: walletAddress, 
+        derived_pubkey: derivedPubkey 
       });
 
     if (error) {
-      console.error('Error uploading message:', error);
-      throw new Error(error.message);
+      console.error("❌ Error storing recipient key:", error);
+      return { error };
     }
 
-    console.log('✅ Message uploaded successfully');
-  } catch (error) {
-    console.error('Failed to upload message:', error);
-    throw error;
+    console.log("✅ Successfully stored recipient key");
+    return { error: null };
+  } catch (err) {
+    console.error("❌ Exception storing recipient key:", err);
+    return { error: err };
   }
 }
 
-export async function fetchMessagesForDeployer(recipientAddress: string): Promise<EncryptedMessage[]> {
+/**
+ * 🔍 Get a recipient's derived public key
+ */
+export async function getRecipientKey(walletAddress: string): Promise<{ data: RecipientKey | null; error: any }> {
   try {
-    const supabase = getSupabaseClient();
+    console.log("🔍 Fetching recipient key for:", walletAddress);
+    
+    const { data, error } = await supabase
+      .from('recipient_keys')
+      .select('*')
+      .eq('wallet_address', walletAddress)
+      .single();
+
+    if (error && error.code !== 'PGRST116') { // PGRST116 = no rows found
+      console.error("❌ Error fetching recipient key:", error);
+      return { data: null, error };
+    }
+
+    if (!data) {
+      console.warn("⚠️ No recipient key found for:", walletAddress);
+      return { data: null, error: null };
+    }
+
+    console.log("✅ Found recipient key:", data.derived_pubkey);
+    return { data, error: null };
+  } catch (err) {
+    console.error("❌ Exception fetching recipient key:", err);
+    return { data: null, error: err };
+  }
+}
+
+/**
+ * 📤 Store an encrypted message
+ */
+export async function storeMessage(
+  senderAddress: string,
+  recipientAddress: string,
+  ciphertext: string,
+  nonce: string,
+  ephemeralPublicKey: string
+): Promise<{ error: any }> {
+  try {
+    console.log("💾 Storing encrypted message...");
+    
+    // Validate base64 encoding
+    if (!isBase64(ciphertext) || !isBase64(nonce) || !isBase64(ephemeralPublicKey)) {
+      throw new Error("All encrypted data must be valid base64");
+    }
+
+    const { error } = await supabase
+      .from('messages')
+      .insert({
+        sender_address: senderAddress,
+        recipient_address: recipientAddress,
+        ciphertext,
+        nonce,
+        ephemeral_public_key: ephemeralPublicKey,
+      });
+
+    if (error) {
+      console.error("❌ Error storing message:", error);
+      return { error };
+    }
+
+    console.log("✅ Message stored successfully");
+    return { error: null };
+  } catch (err) {
+    console.error("❌ Exception storing message:", err);
+    return { error: err };
+  }
+}
+
+/**
+ * 📥 Get messages for a wallet address (sent or received)
+ */
+export async function getMessages(walletAddress: string): Promise<{ data: Message[]; error: any }> {
+  try {
+    console.log("📥 Fetching messages for:", walletAddress);
+    
     const { data, error } = await supabase
       .from('messages')
       .select('*')
-      .eq('recipient_address', recipientAddress)
+      .or(`sender_address.eq.${walletAddress},recipient_address.eq.${walletAddress}`)
       .order('created_at', { ascending: false });
 
     if (error) {
-      console.error('Error fetching messages:', error);
-      throw new Error(error.message);
+      console.error("❌ Error fetching messages:", error);
+      return { data: [], error };
     }
 
-    // Log fetched messages for verification
-    console.log(`✅ Fetched ${data?.length || 0} messages for ${recipientAddress}`);
+    console.log(`✅ Fetched ${data?.length || 0} messages for ${walletAddress}`);
+    return { data: data || [], error: null };
+  } catch (err) {
+    console.error("❌ Exception fetching messages:", err);
+    return { data: [], error: err };
+  }
+}
 
-    return (data || []).map(msg => ({
-      id: msg.id,
-      senderAddress: msg.sender_address,
-      recipientAddress: msg.recipient_address,
-      ciphertext: msg.ciphertext,
-      nonce: msg.nonce,
-      ephemeralPublicKey: msg.ephemeral_public_key,
-      createdAt: msg.created_at
-    }));
-  } catch (error) {
-    console.error('Failed to fetch messages:', error);
-    throw error;
+// Helper function to validate base64
+function isBase64(str: string): boolean {
+  if (!str) return false;
+  try {
+    return btoa(atob(str)) === str;
+  } catch {
+    return false;
   }
 } 

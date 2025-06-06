@@ -1,4 +1,4 @@
-import { box, randomBytes } from 'tweetnacl';
+import { box, randomBytes, sign } from 'tweetnacl';
 import { encodeBase64, decodeBase64 } from 'tweetnacl-util';
 import bs58 from 'bs58';
 import { sha512 } from '@noble/hashes/sha512';
@@ -7,6 +7,11 @@ export interface EncryptedData {
   ciphertext: string;
   nonce: string;
   ephemeralPublicKey: string;
+}
+
+export interface DerivedKeypair {
+  publicKey: Uint8Array;
+  secretKey: Uint8Array;
 }
 
 function bytesToHex(bytes: Uint8Array): string {
@@ -157,35 +162,45 @@ function toBase58(bytes: Uint8Array): string {
 }
 
 /**
- * 🔑 DERIVE KEYPAIR FROM WALLET SIGNATURE
+ * 🔑 DERIVE KEYPAIR FROM WALLET SIGNATURE (CORRECTED)
+ * Uses Ed25519 signature keypair with standardized message format
  */
-export async function deriveKeypairFromWallet(wallet: any): Promise<{ publicKey: Uint8Array; secretKey: Uint8Array }> {
-  console.log("🔑 Deriving keypair from wallet signature...");
+export async function deriveKeypairFromWallet(wallet: any): Promise<DerivedKeypair> {
+  console.log("🔑 Deriving Ed25519 keypair from wallet signature...");
   
   if (!wallet?.publicKey || !wallet?.signMessage) {
     throw new Error("Wallet does not support required methods");
   }
 
   const walletAddress = wallet.publicKey.toBase58();
+  const messageToSign = `DM_DEV_DERIVE_KEY:${walletAddress}`;
+  
+  console.log("📝 Signing standardized message:", messageToSign);
   const signedMessage = await wallet.signMessage(
-    new TextEncoder().encode(`DM_DEV_DECRYPT:${walletAddress}`)
+    new TextEncoder().encode(messageToSign)
   );
   
   console.log("✅ Got wallet signature");
   
+  // Use Ed25519 signature keypair (NOT box keypair)
   const hash = sha512(signedMessage);
-  const privateKey = hash.slice(0, 32); // Ed25519 private key
-  const keypair = box.keyPair.fromSecretKey(privateKey);
+  const seed = hash.slice(0, 32); // Ed25519 seed
+  const derivedKeypair = sign.keyPair.fromSeed(seed);
   
-  console.log("✅ Derived keypair from signature");
-  return keypair;
+  console.log("✅ Derived Ed25519 keypair from signature");
+  console.log("🔑 Derived Public Key (base58):", toBase58(derivedKeypair.publicKey));
+  
+  return derivedKeypair;
 }
 
 /**
- * 🔐 ENCRYPTION: Uses signature-derived public key + ephemeral key
+ * 🔐 ENCRYPTION: Uses recipient's stored derived public key + ephemeral key
  */
-export function encryptMessage(message: string, derivedPublicKeyBase58: string): EncryptedData {
-  console.log("🔐 Starting encryption with signature-derived public key");
+export function encryptMessage(message: string, recipientDerivedPublicKeyBase58: string): EncryptedData {
+  console.log("🔐 Starting encryption with recipient's derived public key");
+  
+  if (!message) throw new Error("Message cannot be empty");
+  if (!recipientDerivedPublicKeyBase58) throw new Error("Recipient derived public key is required");
   
   const nonce = randomBytes(box.nonceLength);
   console.log("✅ Generated nonce");
@@ -193,10 +208,10 @@ export function encryptMessage(message: string, derivedPublicKeyBase58: string):
   const ephemeralKeypair = box.keyPair();
   console.log("✅ Generated ephemeral keypair");
   
-  const derivedPublicKey = bs58.decode(derivedPublicKeyBase58);
-  console.log("✅ Decoded signature-derived public key");
+  const recipientDerivedPublicKey = fromBase58(recipientDerivedPublicKeyBase58);
+  console.log("✅ Decoded recipient's derived public key");
 
-  const sharedKey = box.before(derivedPublicKey, ephemeralKeypair.secretKey);
+  const sharedKey = box.before(recipientDerivedPublicKey, ephemeralKeypair.secretKey);
   console.log("✅ Created shared key with box.before()");
 
   // Wrap the message in versioned JSON
@@ -223,21 +238,21 @@ export function encryptMessage(message: string, derivedPublicKeyBase58: string):
 }
 
 /**
- * 🔓 DECRYPTION: Uses signature-derived secret key + ephemeral key (with backwards compatibility)
+ * 🔓 DECRYPTION: Uses derived secret key + ephemeral key (with backwards compatibility)
  */
 export async function decryptMessage(
   encryptedData: EncryptedData, 
   wallet: any
 ): Promise<Uint8Array> {
-  console.log(`🔓 Starting signature-based decryption for wallet: ${wallet.name}`);
+  console.log(`🔓 Starting decryption for wallet: ${wallet.name}`);
   
-  // Method 1: Try new signature-derived approach first
+  // Method 1: Try new Ed25519 signature-derived approach
   try {
-    console.log("🎯 Trying Method 1: Signature-derived key approach");
+    console.log("🎯 Trying Method 1: Ed25519 signature-derived key approach");
     
-    // Derive the same keypair that was used for encryption
-    const keypair = await deriveKeypairFromWallet(wallet);
-    console.log("✅ Re-derived keypair from wallet signature");
+    // Derive the same Ed25519 keypair that was used for encryption
+    const derivedKeypair = await deriveKeypairFromWallet(wallet);
+    console.log("✅ Re-derived Ed25519 keypair from wallet signature");
 
     // Extract encrypted data
     const nonce = fromBase64(encryptedData.nonce);
@@ -248,7 +263,7 @@ export async function decryptMessage(
     
     // Create shared key using ephemeral public key + derived secret key
     console.log("🤝 Creating shared key with box.before()...");
-    const sharedKey = box.before(ephemeralPublicKey, keypair.secretKey);
+    const sharedKey = box.before(ephemeralPublicKey, derivedKeypair.secretKey);
     console.log("✅ Created shared key");
 
     // Decrypt
@@ -256,7 +271,7 @@ export async function decryptMessage(
     const decryptedBytes = box.open.after(ciphertext, nonce, sharedKey);
     
     if (decryptedBytes) {
-      console.log("✅ Method 1 SUCCESS! Decryption with signature-derived key:", decryptedBytes.length, "bytes");
+      console.log("✅ Method 1 SUCCESS! Decryption with Ed25519 derived key:", decryptedBytes.length, "bytes");
       return decryptedBytes;
     } else {
       console.log("❌ Method 1 failed - trying fallback methods...");
@@ -266,29 +281,31 @@ export async function decryptMessage(
     console.log("❌ Method 1 error:", error, "- trying fallback methods...");
   }
 
-  // Method 2: Try old approach using actual wallet public key
+  // Method 2: Try old box.keyPair approach for backwards compatibility
   try {
-    console.log("🔄 Trying Method 2: Direct wallet signature fallback");
+    console.log("🔄 Trying Method 2: Old box.keyPair fallback");
     
     const walletAddress = wallet.publicKey.toBase58();
     const messageToSign = `DM_DEV_DECRYPT:${walletAddress}`;
-    console.log("📝 Signing message:", messageToSign);
+    console.log("📝 Signing old message format:", messageToSign);
     
     const msgBytes = new TextEncoder().encode(messageToSign);
     const signature = await wallet.signMessage(msgBytes, 'utf8');
 
-    // Use signature hash as private key (old approach)
-    const sharedSecret = sha512(signature).slice(0, 32);
+    // Use old box.keyPair approach
+    const hash = sha512(signature);
+    const privateKey = hash.slice(0, 32);
+    const keypair = box.keyPair.fromSecretKey(privateKey);
     
     const nonce = fromBase64(encryptedData.nonce);
     const ciphertext = fromBase64(encryptedData.ciphertext);
     const ephemeralPublicKey = fromBase64(encryptedData.ephemeralPublicKey);
     
-    const sharedKey = box.before(ephemeralPublicKey, sharedSecret);
+    const sharedKey = box.before(ephemeralPublicKey, keypair.secretKey);
     const decryptedBytes = box.open.after(ciphertext, nonce, sharedKey);
     
     if (decryptedBytes) {
-      console.log("✅ Method 2 SUCCESS! Decryption with direct signature hash:", decryptedBytes.length, "bytes");
+      console.log("✅ Method 2 SUCCESS! Decryption with old box.keyPair approach:", decryptedBytes.length, "bytes");
       return decryptedBytes;
     }
     
@@ -329,40 +346,15 @@ export async function decryptMessage(
     }
   }
 
-  // Method 6: Try using actual wallet public key directly (for very old messages)
-  try {
-    console.log("🔄 Trying Method 6: Direct wallet public key approach (oldest messages)");
-    
-    const nonce = fromBase64(encryptedData.nonce);
-    const ciphertext = fromBase64(encryptedData.ciphertext);
-    const ephemeralPublicKey = fromBase64(encryptedData.ephemeralPublicKey);
-    
-    // Use the actual wallet public key bytes directly
-    const walletPublicKeyBytes = wallet.publicKey.toBytes();
-    console.log("📏 Wallet public key length:", walletPublicKeyBytes.length);
-    
-    // Try direct shared key creation with actual wallet public key
-    const sharedKey = box.before(ephemeralPublicKey, walletPublicKeyBytes);
-    const decryptedBytes = box.open.after(ciphertext, nonce, sharedKey);
-    
-    if (decryptedBytes) {
-      console.log("✅ Method 6 SUCCESS! Decryption with direct wallet public key:", decryptedBytes.length, "bytes");
-      return decryptedBytes;
-    }
-    
-  } catch (error) {
-    console.log("❌ Method 6 error:", error);
-  }
-
   throw new Error("All decryption methods failed. This message may have been encrypted with an incompatible key or is corrupted.");
 }
 
 /**
- * 🧪 TEST FUNCTION: Tests the signature-derived key approach
+ * 🧪 TEST FUNCTION: Tests the Ed25519 signature-derived key approach
  */
 export async function testEncryptionDecryption(): Promise<boolean> {
   try {
-    console.log("🧪 Testing signature-derived key encryption/decryption approach...");
+    console.log("🧪 Testing Ed25519 signature-derived key encryption/decryption approach...");
     
     // Create a test keypair to simulate a wallet
     const testWallet = box.keyPair();
@@ -386,10 +378,10 @@ export async function testEncryptionDecryption(): Promise<boolean> {
     console.log("📝 Original message:", testMessage);
     
     // 1. DERIVE KEYPAIR (what recipient would do)
-    console.log("🔑 Testing keypair derivation...");
+    console.log("🔑 Testing Ed25519 keypair derivation...");
     const derivedKeypair = await deriveKeypairFromWallet(mockWallet);
     const derivedPublicKeyBase58 = bs58.encode(derivedKeypair.publicKey);
-    console.log("✅ Derived public key for encryption");
+    console.log("✅ Derived Ed25519 public key for encryption");
 
     // 2. ENCRYPTION PROCESS
     console.log("🔐 Testing encryption...");
@@ -408,7 +400,7 @@ export async function testEncryptionDecryption(): Promise<boolean> {
     console.log("📝 Decrypted message:", decryptedMessage);
     
     if (decryptedMessage === testMessage) {
-      console.log("✅ Test PASSED! Signature-derived key encryption/decryption works correctly.");
+      console.log("✅ Test PASSED! Ed25519 signature-derived key encryption/decryption works correctly.");
       return true;
     } else {
       console.log("❌ Test FAILED! Messages don't match.");

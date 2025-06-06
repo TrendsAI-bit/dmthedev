@@ -58,6 +58,38 @@ CREATE TABLE public.messages (
   created_at timestamptz not null default now()
 );
 
+-- Recipient keys table for storing derived public keys
+CREATE TABLE public.recipient_keys (
+  wallet_address text primary key,
+  derived_pubkey text not null,
+  created_at timestamptz not null default now()
+);
+
+-- Enable Row Level Security
+ALTER TABLE messages ENABLE ROW LEVEL SECURITY;
+ALTER TABLE recipient_keys ENABLE ROW LEVEL SECURITY;
+
+-- Policies for messages table
+CREATE POLICY "Messages are viewable by sender and recipient"
+ON messages FOR SELECT
+USING (
+  auth.uid()::text = sender_address or 
+  auth.uid()::text = recipient_address
+);
+
+CREATE POLICY "Users can insert their own messages"
+ON messages FOR INSERT
+WITH CHECK (auth.uid()::text = sender_address);
+
+-- Policies for recipient_keys table  
+CREATE POLICY "Recipient keys are viewable by everyone"
+ON recipient_keys FOR SELECT
+USING (true);
+
+CREATE POLICY "Users can insert/update their own keys"
+ON recipient_keys FOR ALL
+USING (auth.uid()::text = wallet_address);
+
 -- Sample insert statement for testing
 -- Replace the placeholder values with actual base64-encoded strings and addresses
 -- insert into public.messages (
@@ -79,21 +111,6 @@ CREATE TABLE public.messages (
 CREATE INDEX idx_messages_recipient_address ON messages(recipient_address);
 CREATE INDEX idx_messages_sender_address ON messages(sender_address);
 CREATE INDEX idx_messages_created_at ON messages(created_at);
-
--- Create RLS policies
-ALTER TABLE messages ENABLE ROW LEVEL SECURITY;
-
--- Allow anyone to insert messages
-CREATE POLICY "Anyone can insert messages"
-ON messages FOR INSERT
-TO public
-WITH CHECK (true);
-
--- Allow anyone to read messages
-CREATE POLICY "Anyone can read messages"
-ON messages FOR SELECT
-TO public
-USING (true);
 
 -- Add comment to table
 COMMENT ON TABLE messages IS 'Stores encrypted messages for DM the DEV application';
