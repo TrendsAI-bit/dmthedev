@@ -160,6 +160,7 @@ export default function Home() {
       // Step 2: Encrypt message
       let encrypted;
       try {
+        console.log("Plaintext message being encrypted:", message); // ✅ 1. Confirm encryption input
         encrypted = await encryptMessage(message, deployerInfo.address);
       } catch (error) {
         console.error('Encryption failed:', error);
@@ -306,6 +307,25 @@ export default function Home() {
       
       const decryptedBytes = await decryptMessage(dataToDecrypt, wallet.adapter, publicKey.toBase58());
       
+      // --- DETAILED DEBUG LOGS ---
+      console.log("Pasted Decrypted raw bytes:", decryptedBytes);
+      const hex = Array.from(decryptedBytes).map(b => b.toString(16).padStart(2, '0')).join('');
+      console.log("Pasted Hex:", hex);
+      try {
+          const B64_CHUNK_SIZE = 8192;
+          let base64 = "";
+          for (let i = 0; i < decryptedBytes.length; i += B64_CHUNK_SIZE) {
+              base64 += String.fromCharCode.apply(
+                  null,
+                  Array.from(decryptedBytes.subarray(i, i + B64_CHUNK_SIZE))
+              );
+          }
+          console.log("Pasted Base64 fallback:", btoa(base64));
+      } catch(e) {
+          console.error("Pasted Base64 conversion failed", e);
+      }
+      // --- END DEBUG LOGS ---
+
       let result: string;
       try {
         const decodedText = new TextDecoder("utf-8", { fatal: true }).decode(decryptedBytes);

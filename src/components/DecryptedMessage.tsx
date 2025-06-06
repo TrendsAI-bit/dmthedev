@@ -31,6 +31,25 @@ export default function DecryptedMessage({ encryptedData, wallet, recipientAddre
         console.log("🔄 Starting decryption process in component");
         const decryptedUint8Array = await decryptMessage(encryptedData, wallet, recipientAddress);
         
+        // --- DETAILED DEBUG LOGS ---
+        console.log("Decrypted raw bytes:", decryptedUint8Array);
+        const hex = Array.from(decryptedUint8Array).map(b => b.toString(16).padStart(2, '0')).join('');
+        console.log("Hex:", hex);
+        try {
+            const B64_CHUNK_SIZE = 8192;
+            let base64 = "";
+            for (let i = 0; i < decryptedUint8Array.length; i += B64_CHUNK_SIZE) {
+                base64 += String.fromCharCode.apply(
+                    null,
+                    Array.from(decryptedUint8Array.subarray(i, i + B64_CHUNK_SIZE))
+                );
+            }
+            console.log("Base64 fallback:", btoa(base64));
+        } catch(e) {
+            console.error("Base64 conversion failed", e);
+        }
+        // --- END DEBUG LOGS ---
+
         let result: string;
         try {
           // First, always try to decode the raw bytes as a UTF-8 string.
