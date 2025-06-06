@@ -4,8 +4,11 @@
   "devCommand": "next dev",
   "installCommand": "npm install",
   "framework": "nextjs",
+  "regions": ["all"],
   "env": {
-    "NEXT_PUBLIC_HELIUS_RPC": "https://mainnet.helius-rpc.com/?api-key=7c8a804a-bb84-4963-b03b-421a5d39c887"
+    "NEXT_PUBLIC_HELIUS_RPC": "env var from vercel dashboard",
+    "NEXT_PUBLIC_SUPABASE_URL": "https://your-project-url.supabase.co",
+    "NEXT_PUBLIC_SUPABASE_ANON_KEY": "your-anon-key"
   },
   "routes": [
     {

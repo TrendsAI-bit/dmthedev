@@ -236,10 +236,8 @@ export default function Home() {
       return;
     }
 
-    // Don't decrypt if already successfully decrypted
-    if (decryptedMessages[messageId] && 
-        !decryptedMessages[messageId].startsWith('[') && 
-        !decryptedMessages[messageId].includes('')) {
+    // Don't decrypt if already decrypted and successful
+    if (decryptedMessages[messageId] && !decryptedMessages[messageId].startsWith('[')) {
       return;
     }
 
@@ -265,46 +263,21 @@ export default function Home() {
         throw new Error('Your wallet does not support message decryption');
       }
 
-      // Attempt decryption with retries
-      let decrypted: string | null = null;
-      let attempts = 0;
-      const maxAttempts = 3;
-
-      while (!decrypted && attempts < maxAttempts) {
-        try {
-          decrypted = await decryptMessage(
-            {
-              ciphertext: message.ciphertext,
-              nonce: message.nonce,
-              ephemeralPublicKey: message.ephemeralPublicKey
-            },
-            wallet.adapter,
-            message.to
-          );
-          
-          // Validate decrypted content
-          if (decrypted.includes('') || decrypted.trim().length === 0) {
-            decrypted = null;
-            throw new Error('Invalid UTF-8 content');
-          }
-        } catch (decryptError) {
-          attempts++;
-          if (attempts === maxAttempts) {
-            throw decryptError;
-          }
-          // Wait before retry
-          await new Promise(resolve => setTimeout(resolve, 1000));
-        }
-      }
-
-      if (!decrypted) {
-        throw new Error('Failed to decrypt after multiple attempts');
-      }
+      // Attempt decryption
+      const decrypted = await decryptMessage(
+        {
+          ciphertext: message.ciphertext,
+          nonce: message.nonce,
+          ephemeralPublicKey: message.ephemeralPublicKey
+        },
+        wallet.adapter,
+        message.to
+      );
 
       // Update state with the decrypted message
       setDecryptedMessages(prev => ({
         ...prev,
-        [messageId]: decrypted!
+        [messageId]: decrypted
       }));
 
     } catch (error: any) {
@@ -319,47 +292,29 @@ export default function Home() {
 
   // Message display component
   const MessageDisplay = ({ message }: { message: string }) => {
-    const [mounted, setMounted] = useState(false);
-    const [displayText, setDisplayText] = useState<string | null>(null);
+    const [displayText, setDisplayText] = useState<string>('[Encrypted data]');
     
-    // Handle mounting state
     useEffect(() => {
-      setMounted(true);
-      return () => setMounted(false);
-    }, []);
-
-    // Handle message updates only after mounting
-    useEffect(() => {
-      if (!mounted) return;
-
       if (!message || typeof message !== 'string') {
         setDisplayText('[Invalid message format]');
         return;
       }
 
+      // Handle error and binary messages immediately
       if (message.startsWith('[❌') || message.startsWith('[⚠️')) {
         setDisplayText(message);
         return;
       }
 
+      // Set the actual message after mount
       setDisplayText(message);
-    }, [message, mounted]);
-
-    // During SSR and initial client render, return a minimal div
-    if (!mounted) {
-      return <div className="mt-2 p-3 rounded-lg bg-gray-100" suppressHydrationWarning />;
-    }
+    }, [message]);
 
     return (
-      <div 
-        className={`mt-2 p-3 rounded-lg ${
-          !displayText || displayText.startsWith('[') 
-            ? 'bg-red-50 font-mono text-sm break-all' 
-            : 'bg-gray-100 font-comic break-words'
-        }`}
-        suppressHydrationWarning
-      >
-        {displayText || '[Encrypted data]'}
+      <div className={`mt-2 p-3 rounded-lg ${
+        displayText.startsWith('[') ? 'bg-red-50 font-mono text-sm break-all' : 'bg-gray-100 font-comic break-words'
+      }`}>
+        {displayText}
       </div>
     );
   };
