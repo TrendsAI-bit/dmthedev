@@ -176,6 +176,30 @@ export function encryptMessage(message: string, recipientPublicKeyB58: string): 
   }
 }
 
+function safeDecodeMessage(decrypted: Uint8Array): string {
+  if (!decrypted || decrypted.length === 0) {
+    return '[Empty message]';
+  }
+
+  try {
+    const decoder = new TextDecoder('utf-8', { fatal: true });
+    const text = decoder.decode(decrypted);
+    
+    // Try parsing as JSON first
+    try {
+      const json = JSON.parse(text);
+      return typeof json === 'object' ? JSON.stringify(json, null, 2) : text;
+    } catch {
+      // Not JSON, return as plain text
+      return text;
+    }
+  } catch (e) {
+    // Not valid UTF-8, convert to base64
+    const base64 = encodeBase64(decrypted);
+    return `[Binary message] Length: ${decrypted.length} bytes\nBase64: ${base64.slice(0, 64)}...`;
+  }
+}
+
 export async function decryptMessage(
   encryptedData: EncryptedData,
   wallet: any,
@@ -224,9 +248,7 @@ export async function decryptMessage(
     console.log('✅ Decryption successful');
 
     // Safely decode to string
-    const result = safelyDecodeBytes(decrypted);
-    console.log('Final result type:', typeof result);
-    return result;
+    return safeDecodeMessage(decrypted);
   } catch (error) {
     console.error('Decryption failed:', error);
     return `[❌ Error: ${error instanceof Error ? error.message : 'Unknown error'}]`;

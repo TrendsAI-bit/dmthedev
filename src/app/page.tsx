@@ -231,55 +231,53 @@ export default function Home() {
 
   // Safe message display component
   const MessageDisplay = ({ message }: { message: unknown }) => {
-    // Use a ref to track if we're mounted to prevent hydration mismatch
-    const isMounted = useRef(false);
     const [displayText, setDisplayText] = useState<string>('[Loading...]');
+    const isMounted = useRef(false);
     
     useEffect(() => {
       isMounted.current = true;
-      let safeMessage: string;
       
-      try {
-        // Handle different types of input
-        if (typeof message === 'string') {
-          // If it's already a formatted message (starts with [), keep it as is
-          if (message.startsWith('[') && message.endsWith(']')) {
-            safeMessage = message;
-          } else {
-            // Try to display as regular text
-            safeMessage = message || '[Empty message]';
-          }
-        } else if (message instanceof Uint8Array) {
-          safeMessage = '[⚠️ Cannot display binary data directly]';
-        } else if (message === null || message === undefined) {
-          safeMessage = '[❌ No message data]';
-        } else {
-          safeMessage = '[❌ Invalid message format]';
+      // Ensure we're working with a string
+      const messageStr = String(message || '');
+      
+      // Determine message type and format
+      let formattedMessage: string;
+      
+      if (messageStr.startsWith('[Binary message]')) {
+        // Binary message - use monospace and preserve newlines
+        formattedMessage = messageStr;
+      } else if (messageStr.startsWith('{') || messageStr.startsWith('[')) {
+        // Try to parse and pretty print JSON
+        try {
+          const parsed = JSON.parse(messageStr);
+          formattedMessage = JSON.stringify(parsed, null, 2);
+        } catch {
+          formattedMessage = messageStr;
         }
-      } catch (e) {
-        console.error('Message conversion error:', e);
-        safeMessage = '[❌ Message conversion failed]';
+      } else {
+        // Regular text message
+        formattedMessage = messageStr;
       }
 
-      // Only update state if mounted to prevent hydration mismatch
       if (isMounted.current) {
-        setDisplayText(safeMessage);
+        setDisplayText(formattedMessage);
       }
     }, [message]);
 
-    // Return loading state during SSR to prevent hydration mismatch
+    // Return loading state during SSR
     if (!isMounted.current) {
       return <div className="mt-2 p-3 rounded-lg font-mono text-sm break-all bg-gray-100">[Loading...]</div>;
     }
 
-    // Style based on message type
-    const style = displayText.startsWith('[❌') ? 'bg-red-50 text-red-600' 
-      : displayText.startsWith('[⚠️') ? 'bg-yellow-50 text-yellow-800'
-      : displayText.startsWith('[🔄') ? 'bg-blue-50 text-blue-600'
+    // Style based on content type
+    const style = displayText.startsWith('[Binary message]') 
+      ? 'bg-yellow-50 text-yellow-800 font-mono whitespace-pre-wrap'
+      : displayText.startsWith('{') || displayText.startsWith('[')
+      ? 'bg-blue-50 text-blue-800 font-mono whitespace-pre'
       : 'bg-gray-100';
 
     return (
-      <div className={`mt-2 p-3 rounded-lg font-mono text-sm break-all ${style}`}>
+      <div className={`mt-2 p-3 rounded-lg text-sm break-all ${style}`}>
         {displayText}
       </div>
     );
