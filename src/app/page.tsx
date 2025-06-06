@@ -5,7 +5,7 @@ import { useWallet } from '@solana/wallet-adapter-react';
 import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
 import { getTokenData } from '@/utils/helius';
 import { Connection, PublicKey, Transaction, SystemProgram, LAMPORTS_PER_SOL } from '@solana/web3.js';
-import { encryptMessage, decryptMessage, EncryptedData, testEncryptionDecryption, deriveKeypairFromWallet } from '@/utils/encryption';
+import { encryptMessage, decryptMessage, EncryptedData, deriveKeypairFromWallet } from '@/utils/encryption';
 import { uploadMessage, fetchMessagesForDeployer, EncryptedMessage } from '@/utils/supabase';
 import dynamic from 'next/dynamic';
 import ClientOnly from '@/components/ClientOnly';
@@ -46,7 +46,6 @@ export default function Home() {
   const [activeTab, setActiveTab] = useState<'send' | 'decrypt'>('send');
   const [messages, setMessages] = useState<EncryptedMessage[]>([]);
   const [decryptedMessages, setDecryptedMessages] = useState<Record<string, string>>({});
-  const [testResult, setTestResult] = useState<string>('');
 
   const handleFindDeployer = async () => {
     if (!tokenAddress) return;
@@ -386,16 +385,6 @@ export default function Home() {
     }
   };
 
-  const runEncryptionTest = async () => {
-    setTestResult('Running test...');
-    try {
-      const success = await testEncryptionDecryption();
-      setTestResult(success ? '✅ Test passed! Encryption/decryption works correctly.' : '❌ Test failed! Check console for details.');
-    } catch (error) {
-      setTestResult(`❌ Test error: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    }
-  };
-
   return (
     <main className="min-h-screen">
       {/* Header */}
@@ -422,29 +411,6 @@ export default function Home() {
 
         <ClientOnly>
           <>
-            {/* Test Section */}
-            <section className="section mb-8">
-              <h2 className="section-title">[🧪] Test New Encryption</h2>
-              <p className="mb-4 text-gray-600">
-                Test the new signature-based encryption/decryption system.
-              </p>
-              <button
-                onClick={runEncryptionTest}
-                className="bg-yellow-100 border-3 border-black py-2 px-4 font-bold rounded-xl hover:bg-yellow-200 transition-colors"
-              >
-                🧪 Run Encryption Test
-              </button>
-              {testResult && (
-                <div className={`mt-3 p-3 rounded-lg text-sm ${
-                  testResult.startsWith('✅') ? 'bg-green-50 text-green-700' :
-                  testResult.startsWith('❌') ? 'bg-red-50 text-red-700' :
-                  'bg-blue-50 text-blue-700'
-                }`}>
-                  {testResult}
-                </div>
-              )}
-            </section>
-
             {/* Token Lookup */}
             <section className="section">
               <h2 className="section-title">[🔍] Token Lookup</h2>
