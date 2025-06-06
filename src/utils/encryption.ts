@@ -34,6 +34,20 @@ function safelyDecodeBytes(bytes: Uint8Array): string {
   }
 
   try {
+    // First check if it might be binary data
+    let isBinary = false;
+    for (let i = 0; i < bytes.length; i++) {
+      // Check for common binary file signatures or non-text bytes
+      if (bytes[i] < 32 && ![9, 10, 13].includes(bytes[i])) { // Exclude tab, newline, carriage return
+        isBinary = true;
+        break;
+      }
+    }
+
+    if (isBinary) {
+      throw new Error('Binary data detected');
+    }
+
     // Log attempt to decode
     console.log('Attempting UTF-8 decode of', bytes.length, 'bytes');
     
@@ -50,8 +64,8 @@ function safelyDecodeBytes(bytes: Uint8Array): string {
     // Convert to base64 for safe preview
     try {
       console.log('Attempting base64 conversion for preview');
-      const base64 = encodeBase64(bytes.slice(0, 24));
-      const preview = `[⚠️ Binary data (${bytes.length} bytes): ${base64}...]`;
+      const base64 = encodeBase64(bytes);
+      const preview = `[⚠️ Binary data (${bytes.length} bytes): ${base64.slice(0, 32)}...]`;
       console.log('✅ Created binary preview:', preview);
       return preview;
     } catch (e2) {

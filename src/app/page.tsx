@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
 import { getTokenData } from '@/utils/helius';
@@ -231,15 +231,24 @@ export default function Home() {
 
   // Safe message display component
   const MessageDisplay = ({ message }: { message: unknown }) => {
-    const [displayText, setDisplayText] = useState<string>('[Encrypted data]');
+    // Use a ref to track if we're mounted to prevent hydration mismatch
+    const isMounted = useRef(false);
+    const [displayText, setDisplayText] = useState<string>('[Loading...]');
     
     useEffect(() => {
+      isMounted.current = true;
       let safeMessage: string;
       
       try {
         // Handle different types of input
         if (typeof message === 'string') {
-          safeMessage = message;
+          // If it's already a formatted message (starts with [), keep it as is
+          if (message.startsWith('[') && message.endsWith(']')) {
+            safeMessage = message;
+          } else {
+            // Try to display as regular text
+            safeMessage = message || '[Empty message]';
+          }
         } else if (message instanceof Uint8Array) {
           safeMessage = '[⚠️ Cannot display binary data directly]';
         } else if (message === null || message === undefined) {
@@ -252,12 +261,21 @@ export default function Home() {
         safeMessage = '[❌ Message conversion failed]';
       }
 
-      setDisplayText(safeMessage);
+      // Only update state if mounted to prevent hydration mismatch
+      if (isMounted.current) {
+        setDisplayText(safeMessage);
+      }
     }, [message]);
+
+    // Return loading state during SSR to prevent hydration mismatch
+    if (!isMounted.current) {
+      return <div className="mt-2 p-3 rounded-lg font-mono text-sm break-all bg-gray-100">[Loading...]</div>;
+    }
 
     // Style based on message type
     const style = displayText.startsWith('[❌') ? 'bg-red-50 text-red-600' 
       : displayText.startsWith('[⚠️') ? 'bg-yellow-50 text-yellow-800'
+      : displayText.startsWith('[🔄') ? 'bg-blue-50 text-blue-600'
       : 'bg-gray-100';
 
     return (
