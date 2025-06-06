@@ -5,7 +5,7 @@ import { useWallet } from '@solana/wallet-adapter-react';
 import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
 import { getTokenData } from '@/utils/helius';
 import { Connection, PublicKey, Transaction, SystemProgram, LAMPORTS_PER_SOL } from '@solana/web3.js';
-import { encryptMessage, decryptMessage } from '@/utils/encryption';
+import { encryptMessage, decryptMessage, EncryptedData } from '@/utils/encryption';
 import { uploadMessage, fetchMessagesForDeployer, EncryptedMessage } from '@/utils/supabase';
 import dynamic from 'next/dynamic';
 import ClientOnly from '@/components/ClientOnly';
@@ -288,6 +288,35 @@ export default function Home() {
     }
   }, [connected, publicKey, wallet, messages]);
 
+  const handleDecryptPastedMessage = async () => {
+    if (!connected || !publicKey || !wallet?.adapter) {
+      alert('Please connect your wallet to decrypt');
+      return;
+    }
+    if (!encryptedMessage) {
+      alert('Please paste the encrypted message JSON');
+      return;
+    }
+
+    try {
+      setDecryptedMessage('🔄 Decrypting message...');
+      let dataToDecrypt: EncryptedData;
+      try {
+        dataToDecrypt = JSON.parse(encryptedMessage);
+      } catch (e) {
+        setDecryptedMessage('[❌ Error: Invalid message format. Please paste the full JSON object.]');
+        return;
+      }
+      
+      const decrypted = await decryptMessage(dataToDecrypt, wallet.adapter, publicKey.toBase58());
+      setDecryptedMessage(decrypted);
+
+    } catch (error: any) {
+      console.error('Pasted message decryption error:', error);
+      setDecryptedMessage(`[❌ Decryption failed: ${error?.message || 'Unknown error'}]`);
+    }
+  };
+
   return (
     <main className="min-h-screen">
       {/* Header */}
@@ -443,21 +472,21 @@ export default function Home() {
               <div className="bg-white border-4 border-black rounded-[30px] p-5 -rotate-[0.3deg]">
                 <textarea
                   className="w-full min-h-[100px] font-comic resize-y bg-transparent"
-                  placeholder="Paste your encrypted message here... [lock]"
+                  placeholder='Paste the full encrypted message JSON here, like: {"ciphertext": "...", "nonce": "...", "ephemeralPublicKey": "..."}'
                   value={encryptedMessage}
                   onChange={(e) => setEncryptedMessage(e.target.value)}
                 />
               </div>
               <button
-                onClick={() => handleDecryptMessage(encryptedMessage)}
+                onClick={handleDecryptPastedMessage}
                 className="bg-white border-3 border-black py-4 px-8 font-bold rounded-xl rotate-1 hover:animate-bounce-light w-full"
               >
                 Decrypt Message [unlock] ↗
               </button>
               {decryptedMessage && (
-                <div className="mt-5 bg-[#ffe6e6] border-3 border-black rounded-xl p-5 -rotate-1">
+                <div className="mt-5 bg-[#e6f7ff] border-3 border-black rounded-xl p-5 -rotate-1">
                   <div><strong>Decrypted Message:</strong></div>
-                  <div className="mt-2 italic">{decryptedMessage}</div>
+                  <pre className="mt-2 italic whitespace-pre-wrap break-all">{decryptedMessage}</pre>
                 </div>
               )}
             </div>
