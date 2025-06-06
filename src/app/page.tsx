@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
 import { getTokenData } from '@/utils/helius';
@@ -30,10 +30,7 @@ export default function Home() {
   const [isSending, setIsSending] = useState(false);
   const [activeTab, setActiveTab] = useState<'send' | 'decrypt'>('send');
   const [messages, setMessages] = useState<EncryptedMessage[]>([]);
-  const [decryptingMessageId, setDecryptingMessageId] = useState<string | null>(null);
   const [decryptedMessages, setDecryptedMessages] = useState<Record<string, string>>({});
-  const [decryptionQueue, setDecryptionQueue] = useState<string[]>([]);
-  const [decryptionInProgress, setDecryptionInProgress] = useState(false);
 
   const handleFindDeployer = async () => {
     if (!tokenAddress) return;
@@ -203,153 +200,26 @@ export default function Home() {
     }
   }, [publicKey]);
 
-  useEffect(() => {
-    if (publicKey) {
-      fetchMessages();
-    } else {
-      setMessages([]);
-      setDecryptedMessages({});
-      setDecryptionQueue([]);
-    }
-  }, [publicKey]);
-
-  useEffect(() => {
-    const processQueue = async () => {
-      if (decryptionQueue.length === 0 || decryptionInProgress || !connected || !publicKey || !wallet) {
-        return;
-      }
-
-      const messageId = decryptionQueue[0];
-      
-      // Check if message is already decrypted
-      if (decryptedMessages[messageId]) {
-        setDecryptionQueue(prev => prev.slice(1));
-        return;
-      }
-
-      try {
-        setDecryptionInProgress(true);
-
-        const message = messages.find(m => m.id === messageId);
-        if (!message) {
-          throw new Error('Message not found');
-        }
-
-        console.log('Attempting to decrypt message:', messageId);
-        console.log('Current wallet address:', publicKey.toBase58());
-        console.log('Message recipient address:', message.to);
-
-        if (message.to !== publicKey.toBase58()) {
-          throw new Error('Message not intended for this wallet');
-        }
-
-        if (!('signMessage' in wallet.adapter)) {
-          throw new Error('Wallet does not support message signing');
-        }
-
-        const decrypted = await decryptMessage(
-          {
-            ciphertext: message.ciphertext,
-            nonce: message.nonce,
-            ephemeralPublicKey: message.ephemeralPublicKey
-          },
-          wallet.adapter,
-          message.to
-        );
-
-        // Validate decrypted message
-        if (typeof decrypted !== 'string' || decrypted.length === 0) {
-          throw new Error('Invalid decrypted message format');
-        }
-
-        // Update state in a single batch
-        setDecryptedMessages(prev => ({
-          ...prev,
-          [messageId]: decrypted
-        }));
-
-      } catch (error: any) {
-        console.error('Decryption error:', error);
-        
-        // Show user-friendly error message based on the error type
-        const errorMessage = error.message || 'Unknown error occurred';
-        let userMessage = 'Failed to decrypt message: ';
-
-        if (errorMessage.includes('Failed to decode message with all attempts')) {
-          userMessage += 'Unable to read the message content (corrupted data)';
-        } else if (errorMessage.includes('invalid key')) {
-          userMessage += 'Unable to decrypt with your wallet key';
-        } else if (errorMessage.includes('Invalid base64')) {
-          userMessage += 'The message data appears to be corrupted';
-        } else if (errorMessage.includes('not intended for this wallet')) {
-          userMessage += 'This message is not intended for your wallet';
-        } else if (errorMessage.includes('Wallet does not support')) {
-          userMessage += 'Your wallet does not support message decryption';
-        } else {
-          userMessage += errorMessage;
-        }
-
-        alert(userMessage);
-
-        // Remove the failed message from decrypted messages if it was partially added
-        setDecryptedMessages(prev => {
-          const { [messageId]: removed, ...rest } = prev;
-          return rest;
-        });
-
-      } finally {
-        setDecryptionQueue(prev => prev.slice(1));
-        setDecryptionInProgress(false);
-      }
-    };
-
-    // Only process queue if we have items and aren't already processing
-    if (decryptionQueue.length > 0 && !decryptionInProgress) {
-      processQueue();
-    }
-
-  }, [decryptionQueue, decryptionInProgress, connected, publicKey, wallet, messages, decryptedMessages]);
-
-  // Cleanup function
-  useEffect(() => {
-    return () => {
-      setDecryptionQueue([]);
-      setDecryptionInProgress(false);
-      setDecryptedMessages({});
-    };
-  }, []);
-
   const handleDecryptMessage = async (messageId: string) => {
-    if (!connected || !publicKey) {
+    if (!connected || !publicKey || !wallet) {
       alert('Please connect your wallet first');
       return;
     }
 
+    // Don't decrypt if already decrypted
     if (decryptedMessages[messageId]) {
-      return; // Message already decrypted
+      return;
     }
 
-    // Use a ref to track if component is mounted
-    const isMounted = useRef(true);
-    useEffect(() => {
-      return () => {
-        isMounted.current = false;
-      };
-    }, []);
-
     try {
-      setDecryptionInProgress(true);
-      setDecryptingMessageId(messageId);
-
-      console.log('=== DECRYPTION DEBUG START ===');
-      console.log('MessageID:', messageId);
-      console.log('Wallet:', publicKey.toBase58());
-      
       const message = messages.find(m => m.id === messageId);
       if (!message) {
         throw new Error('Message not found');
       }
 
+      console.log('=== DECRYPTION DEBUG START ===');
+      console.log('MessageID:', messageId);
+      console.log('Wallet:', publicKey.toBase58());
       console.log('Message Data:', {
         from: message.from,
         to: message.to,
@@ -360,10 +230,7 @@ export default function Home() {
       });
       console.log('=== DECRYPTION DEBUG END ===');
 
-      if (!wallet?.adapter) {
-        throw new Error('Wallet not connected');
-      }
-
+      // Decrypt the message
       const decrypted = await decryptMessage(
         {
           ciphertext: message.ciphertext,
@@ -374,25 +241,27 @@ export default function Home() {
         message.to
       );
 
-      // Only update state if component is still mounted
-      if (isMounted.current) {
-        setDecryptedMessages(prev => ({
-          ...prev,
-          [messageId]: decrypted
-        }));
-      }
+      // Update state with the decrypted message
+      setDecryptedMessages(prev => ({
+        ...prev,
+        [messageId]: decrypted
+      }));
+
     } catch (error: any) {
       console.error('Decryption error:', error);
-      if (isMounted.current) {
-        alert(error.message || 'Failed to decrypt message');
-      }
-    } finally {
-      if (isMounted.current) {
-        setDecryptionInProgress(false);
-        setDecryptingMessageId(null);
-      }
+      alert(`Failed to decrypt message: ${error.message}`);
     }
   };
+
+  // Remove the queue-based decryption system
+  useEffect(() => {
+    if (publicKey) {
+      fetchMessages();
+    } else {
+      setMessages([]);
+      setDecryptedMessages({});
+    }
+  }, [publicKey, fetchMessages]);
 
   return (
     <main className="min-h-screen">
@@ -595,16 +464,15 @@ export default function Home() {
                     </div>
                     
                     {decryptedMessages[msg.id!] ? (
-                      <div className="mt-2 p-3 bg-gray-100 rounded-lg font-comic">
+                      <div className="mt-2 p-3 bg-gray-100 rounded-lg font-comic break-words">
                         {decryptedMessages[msg.id!]}
                       </div>
                     ) : (
                       <button
                         onClick={() => handleDecryptMessage(msg.id!)}
-                        disabled={decryptionInProgress}
                         className="w-full mt-2 py-2 px-4 border-2 border-black rounded-lg bg-white hover:bg-gray-50 transition-colors"
                       >
-                        {decryptionInProgress ? 'Decrypting...' : '🔑 Decrypt Message'}
+                        🔑 Decrypt Message
                       </button>
                     )}
                     

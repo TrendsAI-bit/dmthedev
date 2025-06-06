@@ -13,8 +13,6 @@ const nextConfig = {
       net: false,
       tls: false,
     };
-
-    // Use development version of React only in development mode
     if (dev) {
       config.resolve.alias = {
         ...config.resolve.alias,
@@ -22,7 +20,6 @@ const nextConfig = {
         'react-dom': 'react-dom/dev',
       };
     }
-
     return config;
   },
 }
