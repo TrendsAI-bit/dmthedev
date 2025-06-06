@@ -12,10 +12,6 @@ import ClientOnly from '@/components/ClientOnly';
 
 const HELIUS_RPC = process.env.NEXT_PUBLIC_HELIUS_RPC || 'https://mainnet.helius-rpc.com/?api-key=7c8a804a-bb84-4963-b03b-421a5d39c887';
 
-const ClientOnlyMessage = dynamic(() => import('@/components/ClientOnlyMessage'), {
-  ssr: false,
-});
-
 // Import DecryptedMessage with SSR disabled
 const DecryptedMessage = dynamic(() => import('@/components/DecryptedMessage'), {
   ssr: false,
