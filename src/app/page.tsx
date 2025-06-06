@@ -237,7 +237,7 @@ export default function Home() {
     }
 
     // Don't decrypt if already successfully decrypted
-    if (decryptedMessages[messageId] && !decryptedMessages[messageId].startsWith('[')) {
+    if (decryptedMessages[messageId] && !String(decryptedMessages[messageId]).startsWith('[')) {
       return;
     }
 
@@ -274,42 +274,58 @@ export default function Home() {
         message.to
       );
 
+      // Ensure we store a string
+      const safeDecrypted = typeof decrypted === 'string' 
+        ? decrypted 
+        : '[❌ Invalid decrypted data]';
+
       // Update state with the decrypted message
       setDecryptedMessages(prev => ({
         ...prev,
-        [messageId]: decrypted
+        [messageId]: safeDecrypted
       }));
 
     } catch (error: any) {
       console.error('Decryption error:', error);
+      const errorMessage = String(error?.message || 'Failed to decrypt');
       setDecryptedMessages(prev => ({
         ...prev,
-        [messageId]: `[❌ Error: ${error.message || 'Failed to decrypt'}]`
+        [messageId]: `[❌ Error: ${errorMessage}]`
       }));
     }
   }, [connected, publicKey, wallet, messages]);
 
   // Message display component
-  const MessageDisplay = ({ message }: { message: string }) => {
+  const MessageDisplay = ({ message }: { message: unknown }) => {
     const [displayText, setDisplayText] = useState<string>('[Encrypted data]');
     
     useEffect(() => {
-      // Ensure we're working with a string
-      const safeMessage = typeof message === 'string' ? message : '[⚠️ Unrenderable data]';
-      
-      if (!safeMessage) {
-        setDisplayText('[❌ Invalid message]');
-        return;
-      }
+      try {
+        // Ensure we're working with a string
+        const safeMessage = typeof message === 'string' 
+          ? message 
+          : message instanceof Uint8Array
+            ? '[⚠️ Binary data]'
+            : '[⚠️ Unrenderable data]';
+        
+        // Additional safety check
+        if (!safeMessage || typeof safeMessage !== 'string') {
+          setDisplayText('[❌ Invalid message]');
+          return;
+        }
 
-      // Handle special message types
-      if (safeMessage.startsWith('[❌') || safeMessage.startsWith('[⚠️')) {
+        // Handle special message types
+        if (safeMessage.startsWith('[❌') || safeMessage.startsWith('[⚠️')) {
+          setDisplayText(safeMessage);
+          return;
+        }
+
+        // Set the actual message after mount
         setDisplayText(safeMessage);
-        return;
+      } catch (e) {
+        console.error('Message display error:', e);
+        setDisplayText('[❌ Display error]');
       }
-
-      // Set the actual message after mount
-      setDisplayText(safeMessage);
     }, [message]);
 
     // Determine message type and style
@@ -323,10 +339,14 @@ export default function Home() {
       normal: 'bg-gray-100 font-comic break-words'
     }[messageType];
 
+    // Ensure we never render non-string content
+    const finalText = typeof displayText === 'string' 
+      ? displayText 
+      : '[❌ Invalid display data]';
+
     return (
       <div className={`mt-2 p-3 rounded-lg ${messageStyle}`}>
-        {/* Always ensure string rendering */}
-        {String(displayText)}
+        {finalText}
       </div>
     );
   };
