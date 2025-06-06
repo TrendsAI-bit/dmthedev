@@ -4,7 +4,7 @@
   "devCommand": "next dev",
   "installCommand": "npm install",
   "framework": "nextjs",
-  "regions": ["all"],
+  "regions": ["sin1"],
   "env": {
     "NEXT_PUBLIC_HELIUS_RPC": "env var from vercel dashboard",
     "NEXT_PUBLIC_SUPABASE_URL": "https://your-project-url.supabase.co",
