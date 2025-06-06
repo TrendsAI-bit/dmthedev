@@ -231,56 +231,46 @@ export default function Home() {
 
   // Safe message display component
   const MessageDisplay = ({ message }: { message: unknown }) => {
-    const [displayText, setDisplayText] = useState<string>('[Loading...]');
+    // Use a ref to track if we're mounted to prevent hydration mismatch
     const isMounted = useRef(false);
+    const [displayText, setDisplayText] = useState('');
     
     useEffect(() => {
       isMounted.current = true;
       
-      // Ensure we're working with a string
+      // Convert message to string safely
       const messageStr = String(message || '');
       
-      // Determine message type and format
-      let formattedMessage: string;
-      
-      if (messageStr.startsWith('[Binary message]')) {
-        // Binary message - use monospace and preserve newlines
-        formattedMessage = messageStr;
-      } else if (messageStr.startsWith('{') || messageStr.startsWith('[')) {
-        // Try to parse and pretty print JSON
-        try {
-          const parsed = JSON.parse(messageStr);
-          formattedMessage = JSON.stringify(parsed, null, 2);
-        } catch {
-          formattedMessage = messageStr;
-        }
-      } else {
-        // Regular text message
-        formattedMessage = messageStr;
-      }
-
+      // Set the display text only after mounting
       if (isMounted.current) {
-        setDisplayText(formattedMessage);
+        setDisplayText(messageStr);
       }
     }, [message]);
 
-    // Return loading state during SSR
+    // During SSR or before mount, return a placeholder
     if (!isMounted.current) {
-      return <div className="mt-2 p-3 rounded-lg font-mono text-sm break-all bg-gray-100">[Loading...]</div>;
+      return null;
     }
 
-    // Style based on content type
-    const style = displayText.startsWith('[Binary message]') 
-      ? 'bg-yellow-50 text-yellow-800 font-mono whitespace-pre-wrap'
-      : displayText.startsWith('{') || displayText.startsWith('[')
-      ? 'bg-blue-50 text-blue-800 font-mono whitespace-pre'
+    // Handle different message types
+    const isError = displayText.startsWith('[❌');
+    const isBinary = displayText.startsWith('[Binary data]') || displayText.startsWith('[Encoded data]');
+    const isJson = !isError && !isBinary && (displayText.startsWith('{') || displayText.startsWith('['));
+
+    // Select style based on content type
+    const style = isError ? 'bg-red-50 text-red-600' 
+      : isBinary ? 'bg-yellow-50 text-yellow-800'
+      : isJson ? 'bg-blue-50 text-blue-800'
       : 'bg-gray-100';
 
-    return (
-      <div className={`mt-2 p-3 rounded-lg text-sm break-all ${style}`}>
+    // Additional classes for different content types
+    const additionalClasses = (isBinary || isJson) ? 'font-mono whitespace-pre-wrap' : '';
+
+    return displayText ? (
+      <div className={`mt-2 p-3 rounded-lg text-sm break-all ${style} ${additionalClasses}`}>
         {displayText}
       </div>
-    );
+    ) : null;
   };
 
   // Update the handleDecryptMessage function

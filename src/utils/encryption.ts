@@ -181,22 +181,41 @@ function safeDecodeMessage(decrypted: Uint8Array): string {
     return '[Empty message]';
   }
 
+  // First check if it's binary data
+  let isBinary = false;
+  for (let i = 0; i < Math.min(decrypted.length, 100); i++) {
+    if (decrypted[i] < 9 || (decrypted[i] > 13 && decrypted[i] < 32) || decrypted[i] > 126) {
+      isBinary = true;
+      break;
+    }
+  }
+
+  // If it's binary, return base64 immediately
+  if (isBinary) {
+    const base64 = encodeBase64(decrypted);
+    return `[Binary data] ${decrypted.length} bytes\nPreview: ${base64.slice(0, 32)}...`;
+  }
+
   try {
-    const decoder = new TextDecoder('utf-8', { fatal: true });
-    const text = decoder.decode(decrypted);
+    // Attempt UTF-8 decoding
+    const text = new TextDecoder('utf-8', { fatal: true }).decode(decrypted);
     
-    // Try parsing as JSON first
+    // Check if it's JSON
     try {
       const json = JSON.parse(text);
-      return typeof json === 'object' ? JSON.stringify(json, null, 2) : text;
+      if (typeof json === 'object') {
+        // Format JSON nicely
+        return JSON.stringify(json, null, 2);
+      }
     } catch {
-      // Not JSON, return as plain text
-      return text;
+      // Not JSON, just return the text
     }
+    
+    return text;
   } catch (e) {
-    // Not valid UTF-8, convert to base64
+    // If UTF-8 decoding fails, return a safe string
     const base64 = encodeBase64(decrypted);
-    return `[Binary message] Length: ${decrypted.length} bytes\nBase64: ${base64.slice(0, 64)}...`;
+    return `[Encoded data] ${decrypted.length} bytes\nBase64: ${base64.slice(0, 32)}...`;
   }
 }
 
@@ -207,11 +226,6 @@ export async function decryptMessage(
 ): Promise<string> {
   try {
     console.log('Starting decryption...');
-    console.log('Message components:', {
-      ciphertextLength: encryptedData.ciphertext.length,
-      nonceLength: encryptedData.nonce.length,
-      pubKeyLength: encryptedData.ephemeralPublicKey.length
-    });
 
     validateEncryptedData(encryptedData);
     console.log('✅ Validated encrypted data format');
@@ -243,12 +257,14 @@ export async function decryptMessage(
     // Decrypt
     const decrypted = box.after(ciphertext, nonce, sharedKey);
     if (!decrypted) {
-      throw new Error('Decryption failed');
+      return '[❌ Decryption failed]';
     }
     console.log('✅ Decryption successful');
 
-    // Safely decode to string
-    return safeDecodeMessage(decrypted);
+    // Convert to safe string immediately
+    const result = safeDecodeMessage(decrypted);
+    console.log('Message type:', result.startsWith('[Binary data]') ? 'binary' : 'text');
+    return result;
   } catch (error) {
     console.error('Decryption failed:', error);
     return `[❌ Error: ${error instanceof Error ? error.message : 'Unknown error'}]`;
