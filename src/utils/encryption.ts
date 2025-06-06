@@ -29,22 +29,31 @@ function safeDecodeBase64(value: string, fieldName: string): Uint8Array {
 
 function safelyDecodeBytes(bytes: Uint8Array): string {
   if (!bytes || bytes.length === 0) {
+    console.warn('⚠️ Empty bytes received');
     return '[❌ Empty data]';
   }
 
   try {
+    // Log attempt to decode
+    console.log('Attempting UTF-8 decode of', bytes.length, 'bytes');
+    
     // Attempt UTF-8 decoding
     const text = new TextDecoder('utf-8', { fatal: true }).decode(bytes);
     if (!text) {
       throw new Error('Empty text after decoding');
     }
+    
+    console.log('✅ Successfully decoded UTF-8 text');
     return text;
   } catch (e) {
     console.warn('⚠️ UTF-8 decode failed:', e);
     // Convert to base64 for safe preview
     try {
+      console.log('Attempting base64 conversion for preview');
       const base64 = encodeBase64(bytes.slice(0, 24));
-      return `[⚠️ Binary data (${bytes.length} bytes): ${base64}...]`;
+      const preview = `[⚠️ Binary data (${bytes.length} bytes): ${base64}...]`;
+      console.log('✅ Created binary preview:', preview);
+      return preview;
     } catch (e2) {
       console.error('Base64 encoding failed:', e2);
       return '[❌ Invalid binary data]';
@@ -142,7 +151,14 @@ export async function decryptMessage(
 ): Promise<string> {
   try {
     console.log('Starting decryption...');
+    console.log('Message components:', {
+      ciphertextLength: encryptedData.ciphertext.length,
+      nonceLength: encryptedData.nonce.length,
+      pubKeyLength: encryptedData.ephemeralPublicKey.length
+    });
+
     validateEncryptedData(encryptedData);
+    console.log('✅ Validated encrypted data format');
 
     // Get signature from wallet
     const message = new TextEncoder().encode(
@@ -151,27 +167,34 @@ export async function decryptMessage(
     
     const signature = await wallet.signMessage(message);
     const signatureBytes = signature instanceof Uint8Array ? signature : bs58.decode(signature);
+    console.log('✅ Got wallet signature');
     
     // Derive secret key
     const hash = sha512(signatureBytes);
     const secretKey = new Uint8Array(hash.slice(0, box.secretKeyLength));
+    console.log('✅ Derived secret key');
 
     // Decode base64 components
     const ciphertext = decodeBase64(encryptedData.ciphertext);
     const nonce = decodeBase64(encryptedData.nonce);
     const ephemeralPublicKey = decodeBase64(encryptedData.ephemeralPublicKey);
+    console.log('✅ Decoded base64 components');
 
     // Generate shared key
     const sharedKey = box.before(ephemeralPublicKey, secretKey);
+    console.log('✅ Generated shared key');
 
     // Decrypt
     const decrypted = box.after(ciphertext, nonce, sharedKey);
     if (!decrypted) {
       throw new Error('Decryption failed');
     }
+    console.log('✅ Decryption successful');
 
     // Safely decode to string
-    return safelyDecodeBytes(decrypted);
+    const result = safelyDecodeBytes(decrypted);
+    console.log('Final result type:', typeof result);
+    return result;
   } catch (error) {
     console.error('Decryption failed:', error);
     return `[❌ Error: ${error instanceof Error ? error.message : 'Unknown error'}]`;
