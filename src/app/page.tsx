@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
 import { getTokenData } from '@/utils/helius';
@@ -329,20 +329,27 @@ export default function Home() {
       return; // Message already decrypted
     }
 
-    if (decryptionQueue.includes(messageId)) {
-      return; // Message already in queue
-    }
+    // Use a ref to track if component is mounted
+    const isMounted = useRef(true);
+    useEffect(() => {
+      return () => {
+        isMounted.current = false;
+      };
+    }, []);
 
-    if (decryptionInProgress) {
-      return; // Already processing another message
-    }
+    try {
+      setDecryptionInProgress(true);
+      setDecryptingMessageId(messageId);
 
-    console.log('=== DECRYPTION DEBUG START ===');
-    console.log('MessageID:', messageId);
-    console.log('Wallet:', publicKey.toBase58());
-    
-    const message = messages.find(m => m.id === messageId);
-    if (message) {
+      console.log('=== DECRYPTION DEBUG START ===');
+      console.log('MessageID:', messageId);
+      console.log('Wallet:', publicKey.toBase58());
+      
+      const message = messages.find(m => m.id === messageId);
+      if (!message) {
+        throw new Error('Message not found');
+      }
+
       console.log('Message Data:', {
         from: message.from,
         to: message.to,
@@ -351,10 +358,40 @@ export default function Home() {
         nonce: message.nonce,
         ephemeralPublicKey: message.ephemeralPublicKey
       });
-    }
-    console.log('=== DECRYPTION DEBUG END ===');
+      console.log('=== DECRYPTION DEBUG END ===');
 
-    setDecryptionQueue(prev => [...prev, messageId]);
+      if (!wallet?.adapter) {
+        throw new Error('Wallet not connected');
+      }
+
+      const decrypted = await decryptMessage(
+        {
+          ciphertext: message.ciphertext,
+          nonce: message.nonce,
+          ephemeralPublicKey: message.ephemeralPublicKey
+        },
+        wallet.adapter,
+        message.to
+      );
+
+      // Only update state if component is still mounted
+      if (isMounted.current) {
+        setDecryptedMessages(prev => ({
+          ...prev,
+          [messageId]: decrypted
+        }));
+      }
+    } catch (error: any) {
+      console.error('Decryption error:', error);
+      if (isMounted.current) {
+        alert(error.message || 'Failed to decrypt message');
+      }
+    } finally {
+      if (isMounted.current) {
+        setDecryptionInProgress(false);
+        setDecryptingMessageId(null);
+      }
+    }
   };
 
   return (

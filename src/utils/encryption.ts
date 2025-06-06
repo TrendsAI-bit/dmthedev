@@ -48,11 +48,22 @@ function tryDecodeMessage(bytes: Uint8Array): string {
   }
 
   try {
-    // First try: direct UTF-8 decoding of cleaned bytes
+    // Clean up the bytes first
     const cleaned = cleanupBytes(bytes);
+    console.log('Cleaned bytes:', bytesToHex(cleaned));
+
+    // Try decoding as UTF-8 with BOM handling
     try {
-      const decoded = new TextDecoder('utf-8', { fatal: true }).decode(cleaned);
-      if (decoded && decoded.length > 0) {
+      // Check for UTF-8 BOM
+      const bom = new Uint8Array([0xEF, 0xBB, 0xBF]);
+      const hasBOM = cleaned.length >= 3 && 
+        cleaned[0] === bom[0] && 
+        cleaned[1] === bom[1] && 
+        cleaned[2] === bom[2];
+      
+      const textBytes = hasBOM ? cleaned.slice(3) : cleaned;
+      const decoded = new TextDecoder('utf-8', { fatal: false }).decode(textBytes);
+      if (decoded && decoded.length > 0 && decoded.trim() !== '') {
         console.log('Successfully decoded as UTF-8:', decoded);
         return decoded;
       }
@@ -60,36 +71,35 @@ function tryDecodeMessage(bytes: Uint8Array): string {
       console.log('UTF-8 decoding failed:', e);
     }
 
-    // Second try: decode as Base64
+    // Try decoding as ASCII
     try {
-      const base64 = bytesToHex(cleaned)
-        .match(/.{2}/g)!
-        .map(hex => String.fromCharCode(parseInt(hex, 16)))
-        .join('');
-      const decoded = atob(base64);
-      if (decoded && decoded.length > 0) {
-        console.log('Successfully decoded as Base64:', decoded);
-        return decoded;
+      const ascii = Array.from(cleaned)
+        .map(b => b >= 32 && b <= 126 ? String.fromCharCode(b) : '')
+        .join('')
+        .trim();
+      if (ascii && ascii.length > 0) {
+        console.log('Successfully decoded as ASCII:', ascii);
+        return ascii;
       }
     } catch (e) {
-      console.log('Base64 decoding failed:', e);
+      console.log('ASCII decoding failed:', e);
     }
 
-    // Third try: decode as hex string
+    // Try decoding as Latin1
+    try {
+      const latin1 = Array.from(cleaned)
+        .map(b => String.fromCharCode(b))
+        .join('');
+      if (latin1 && latin1.length > 0 && /^[\x20-\x7E\xA0-\xFF]*$/.test(latin1)) {
+        console.log('Successfully decoded as Latin1:', latin1);
+        return latin1;
+      }
+    } catch (e) {
+      console.log('Latin1 decoding failed:', e);
+    }
+
+    // If all decoding attempts fail, return hex representation
     const hexString = bytesToHex(cleaned);
-    try {
-      const decoded = hexString.match(/.{2}/g)!
-        .map(hex => String.fromCharCode(parseInt(hex, 16)))
-        .join('');
-      if (decoded && /^[\x20-\x7E\xA0-\xFF]*$/.test(decoded)) {
-        console.log('Successfully decoded as hex string:', decoded);
-        return decoded;
-      }
-    } catch (e) {
-      console.log('Hex string decoding failed:', e);
-    }
-
-    // Last resort: return hex representation
     console.log('Falling back to hex representation');
     return `[Encrypted data: ${hexString}]`;
   } catch (error) {
@@ -124,11 +134,17 @@ function validateEncryptedData(data: EncryptedData): void {
 function safeEncodeUTF8(text: string): Uint8Array {
   try {
     // Convert the string to UTF-8 bytes
-    const messageBytes = new TextEncoder().encode(text);
+    const encoder = new TextEncoder();
+    const messageBytes = encoder.encode(text);
     
     // Add version byte to the beginning of the message
     const versionByte = new Uint8Array([MESSAGE_VERSION]);
-    return concatenateUint8Arrays(versionByte, messageBytes);
+    const result = concatenateUint8Arrays(versionByte, messageBytes);
+    
+    console.log('Original text:', text);
+    console.log('Encoded bytes:', bytesToHex(result));
+    
+    return result;
   } catch (error) {
     console.error('UTF-8 encoding error:', error);
     throw new Error('Failed to encode message for encryption');
