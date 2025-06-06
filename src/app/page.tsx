@@ -236,8 +236,8 @@ export default function Home() {
       return;
     }
 
-    // Don't decrypt if already decrypted and not an error
-    if (decryptedMessages[messageId] && !decryptedMessages[messageId].startsWith('[❌')) {
+    // Don't decrypt if already successfully decrypted
+    if (decryptedMessages[messageId] && !decryptedMessages[messageId].startsWith('[')) {
       return;
     }
 
@@ -282,28 +282,27 @@ export default function Home() {
 
     } catch (error: any) {
       console.error('Decryption error:', error);
-      const errorMessage = error.message || 'Failed to decrypt';
       setDecryptedMessages(prev => ({
         ...prev,
-        [messageId]: `[❌ Error: ${errorMessage}]`
+        [messageId]: `[❌ Error: ${error.message || 'Failed to decrypt'}]`
       }));
     }
-  }, [connected, publicKey, wallet, messages, decryptedMessages]);
+  }, [connected, publicKey, wallet, messages]);
 
   // Message display component
   const MessageDisplay = ({ message }: { message: string }) => {
     const [displayText, setDisplayText] = useState<string>('[Encrypted data]');
     
     useEffect(() => {
-      if (!message || typeof message !== 'string') {
-        setDisplayText('[Invalid message format]');
+      // Ensure we're working with a string
+      const safeMessage = typeof message === 'string' ? message : '[⚠️ Unrenderable data]';
+      
+      if (!safeMessage) {
+        setDisplayText('[❌ Invalid message]');
         return;
       }
 
-      // Safely convert any non-string values
-      const safeMessage = String(message);
-
-      // Handle error and binary messages immediately
+      // Handle special message types
       if (safeMessage.startsWith('[❌') || safeMessage.startsWith('[⚠️')) {
         setDisplayText(safeMessage);
         return;
@@ -313,15 +312,21 @@ export default function Home() {
       setDisplayText(safeMessage);
     }, [message]);
 
-    // Determine style based on message type
-    const isErrorOrBinary = displayText.startsWith('[❌') || displayText.startsWith('[⚠️');
-    const messageStyle = isErrorOrBinary 
-      ? 'bg-red-50 font-mono text-sm break-all'
-      : 'bg-gray-100 font-comic break-words';
+    // Determine message type and style
+    const messageType = displayText.startsWith('[❌') ? 'error' 
+      : displayText.startsWith('[⚠️') ? 'warning'
+      : 'normal';
+
+    const messageStyle = {
+      error: 'bg-red-50 font-mono text-sm break-all text-red-600',
+      warning: 'bg-yellow-50 font-mono text-sm break-all text-yellow-800',
+      normal: 'bg-gray-100 font-comic break-words'
+    }[messageType];
 
     return (
       <div className={`mt-2 p-3 rounded-lg ${messageStyle}`}>
-        {displayText}
+        {/* Always ensure string rendering */}
+        {String(displayText)}
       </div>
     );
   };

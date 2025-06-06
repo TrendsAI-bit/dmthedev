@@ -27,37 +27,38 @@ function safeDecodeBase64(value: string, fieldName: string): Uint8Array {
   }
 }
 
+function safelyDecodeBytes(bytes: Uint8Array): string {
+  if (!bytes || bytes.length === 0) {
+    return '[❌ Empty data]';
+  }
+
+  try {
+    // First attempt strict UTF-8 decoding
+    const text = new TextDecoder('utf-8', { fatal: true }).decode(bytes);
+    if (!text.trim()) {
+      throw new Error('Empty text after decoding');
+    }
+    return text;
+  } catch (e) {
+    console.warn('⚠️ UTF-8 decode failed:', e);
+    // Convert to base64 for safe preview
+    try {
+      // Take first 24 bytes for preview
+      const previewBytes = bytes.slice(0, 24);
+      const base64 = bytesToBase64(previewBytes);
+      return `[⚠️ Binary data (${bytes.length} bytes): ${base64}...]`;
+    } catch (e2) {
+      console.error('Failed to create base64 preview:', e2);
+      return '[❌ Invalid binary data]';
+    }
+  }
+}
+
 function safeDecryptToString(decryptedBytes: Uint8Array | null): string {
   if (!decryptedBytes) {
     return '[❌ Failed to decrypt]';
   }
-
-  try {
-    // Attempt UTF-8 decoding with strict validation
-    const text = new TextDecoder('utf-8', { fatal: true }).decode(decryptedBytes);
-    
-    // Validate the decoded text
-    if (!text || text.trim().length === 0) {
-      throw new Error('Empty or invalid text');
-    }
-
-    // Additional validation to ensure it's printable text
-    if (/[\x00-\x08\x0B\x0C\x0E-\x1F]/.test(text)) {
-      throw new Error('Contains control characters');
-    }
-
-    return text;
-  } catch (e) {
-    console.error('❌ Decoding error:', e);
-    
-    // Format binary data preview
-    if (decryptedBytes.length > 0) {
-      const base64Preview = bytesToBase64(decryptedBytes).slice(0, 20);
-      return `[⚠️ Binary data (${decryptedBytes.length} bytes): ${base64Preview}...]`;
-    }
-    
-    return '[❌ Invalid data format]';
-  }
+  return safelyDecodeBytes(decryptedBytes);
 }
 
 function validateEncryptedData(data: EncryptedData): void {
@@ -156,7 +157,7 @@ export async function decryptMessage(
     const hash = sha512(signatureBytes);
     const secretKey = new Uint8Array(hash.slice(0, box.secretKeyLength));
 
-    // Decode encrypted components with validation
+    // Decode encrypted components
     const ciphertext = safeDecodeBase64(encryptedData.ciphertext, 'ciphertext');
     const nonce = safeDecodeBase64(encryptedData.nonce, 'nonce');
     const ephemeralPublicKey = safeDecodeBase64(encryptedData.ephemeralPublicKey, 'ephemeralPublicKey');
@@ -168,7 +169,7 @@ export async function decryptMessage(
     const decrypted = box.after(ciphertext, nonce, sharedKey);
     console.log('Decryption result:', decrypted ? 'success' : 'failed');
 
-    // Convert to string safely
+    // Safely decode the decrypted bytes
     return safeDecryptToString(decrypted);
   } catch (error) {
     console.error('Decryption failed:', error);
