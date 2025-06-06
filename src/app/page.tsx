@@ -275,16 +275,16 @@ export default function Home() {
         const errorMessage = error.message || 'Unknown error occurred';
         let userMessage = 'Failed to decrypt message: ';
 
-        if (errorMessage.includes('Legacy message data is not valid')) {
-          userMessage += 'Unable to read the message content (legacy format)';
-        } else if (errorMessage.includes('not valid UTF-8')) {
-          userMessage += 'The message appears to be corrupted (invalid text format)';
+        if (errorMessage.includes('Failed to decode message with all attempts')) {
+          userMessage += 'Unable to read the message content (corrupted data)';
         } else if (errorMessage.includes('invalid key')) {
           userMessage += 'Unable to decrypt with your wallet key';
         } else if (errorMessage.includes('Invalid base64')) {
           userMessage += 'The message data appears to be corrupted';
-        } else if (errorMessage.includes('Ciphertext too short')) {
-          userMessage += 'The message data is incomplete';
+        } else if (errorMessage.includes('not intended for this wallet')) {
+          userMessage += 'This message is not intended for your wallet';
+        } else if (errorMessage.includes('Wallet does not support')) {
+          userMessage += 'Your wallet does not support message decryption';
         } else {
           userMessage += errorMessage;
         }

@@ -12,7 +12,6 @@ export interface EncryptedData {
 
 // Message format version for future compatibility
 const MESSAGE_VERSION = 1;
-const LEGACY_MESSAGE_MARKER = 0x2b; // ASCII '+'
 
 function isValidUTF8(bytes: Uint8Array): boolean {
   try {
@@ -41,6 +40,63 @@ function concatenateUint8Arrays(...arrays: Uint8Array[]): Uint8Array {
   return result;
 }
 
+function tryDecodeMessage(bytes: Uint8Array): string {
+  // Try different decoding strategies
+  const attempts = [
+    // Attempt 1: Try decoding the entire message
+    () => {
+      if (isValidUTF8(bytes)) {
+        return new TextDecoder('utf-8', { fatal: true }).decode(bytes);
+      }
+      throw new Error('Not valid UTF-8');
+    },
+    // Attempt 2: Try skipping the first byte (version byte)
+    () => {
+      const messageBytes = bytes.slice(1);
+      if (isValidUTF8(messageBytes)) {
+        return new TextDecoder('utf-8', { fatal: true }).decode(messageBytes);
+      }
+      throw new Error('Not valid UTF-8 after skipping version byte');
+    },
+    // Attempt 3: Try trimming null bytes from the end
+    () => {
+      let end = bytes.length;
+      while (end > 0 && bytes[end - 1] === 0) {
+        end--;
+      }
+      const trimmed = bytes.slice(0, end);
+      if (isValidUTF8(trimmed)) {
+        return new TextDecoder('utf-8', { fatal: true }).decode(trimmed);
+      }
+      throw new Error('Not valid UTF-8 after trimming nulls');
+    },
+    // Attempt 4: Try trimming nulls and skipping first byte
+    () => {
+      let end = bytes.length;
+      while (end > 1 && bytes[end - 1] === 0) {
+        end--;
+      }
+      const trimmed = bytes.slice(1, end);
+      if (isValidUTF8(trimmed)) {
+        return new TextDecoder('utf-8', { fatal: true }).decode(trimmed);
+      }
+      throw new Error('Not valid UTF-8 after trimming nulls and skipping version');
+    }
+  ];
+
+  let lastError = null;
+  for (const attempt of attempts) {
+    try {
+      return attempt();
+    } catch (error) {
+      lastError = error;
+      console.log('Decode attempt failed:', error);
+    }
+  }
+
+  throw lastError || new Error('Failed to decode message with all attempts');
+}
+
 function validateEncryptedData(data: EncryptedData): void {
   try {
     const ciphertext = decodeBase64(data.ciphertext);
@@ -64,32 +120,7 @@ function validateEncryptedData(data: EncryptedData): void {
   }
 }
 
-function safeEncodeUTF8(bytes: Uint8Array, isLegacy: boolean = false): string {
-  try {
-    // For legacy messages or if the first byte looks like a legacy message
-    if (isLegacy || bytes[0] === LEGACY_MESSAGE_MARKER) {
-      if (!isValidUTF8(bytes)) {
-        console.error('Invalid UTF-8 bytes (hex):', bytesToHex(bytes));
-        throw new Error('Legacy message data is not valid UTF-8');
-      }
-      return new TextDecoder('utf-8', { fatal: true }).decode(bytes);
-    }
-
-    // For versioned messages, skip the version byte
-    const messageBytes = bytes.slice(1);
-    if (!isValidUTF8(messageBytes)) {
-      console.error('Invalid UTF-8 bytes (hex):', bytesToHex(messageBytes));
-      throw new Error('Decrypted data is not valid UTF-8');
-    }
-
-    return new TextDecoder('utf-8', { fatal: true }).decode(messageBytes);
-  } catch (error) {
-    console.error('UTF-8 decoding error:', error);
-    throw new Error('Failed to decode decrypted message as UTF-8');
-  }
-}
-
-function safeDecodeUTF8(text: string): Uint8Array {
+function safeEncodeUTF8(text: string): Uint8Array {
   try {
     const encoder = new TextEncoder();
     const messageBytes = encoder.encode(text);
@@ -121,7 +152,7 @@ export function encryptMessage(message: string, recipientPublicKeyB58: string): 
     const sharedKey = box.before(recipientPublicKey, ephemeralKeypair.secretKey);
 
     // Convert message to Uint8Array with version byte
-    const messageBytes = safeDecodeUTF8(message);
+    const messageBytes = safeEncodeUTF8(message);
     console.log('Original message bytes with version (hex):', bytesToHex(messageBytes));
 
     const encrypted = box.after(messageBytes, nonce, sharedKey);
@@ -198,12 +229,8 @@ export async function decryptMessage(
 
     console.log('Decrypted bytes (hex):', bytesToHex(decrypted));
 
-    // Check if this is a legacy message (no version byte or starts with common text characters)
-    const firstByte = decrypted[0];
-    const isLegacy = firstByte >= 32 && firstByte <= 126; // ASCII printable characters
-
-    // Safely convert decrypted bytes to UTF-8 string
-    const decryptedText = safeEncodeUTF8(decrypted, isLegacy);
+    // Try multiple decoding strategies
+    const decryptedText = tryDecodeMessage(decrypted);
     console.log('Decryption successful');
     return decryptedText;
   } catch (error) {
