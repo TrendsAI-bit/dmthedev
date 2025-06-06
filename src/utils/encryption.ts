@@ -56,55 +56,70 @@ function findValidUTF8Sequence(bytes: Uint8Array): Uint8Array | null {
 function tryDecodeMessage(bytes: Uint8Array): string {
   console.log('Attempting to decode bytes:', bytesToHex(bytes));
 
+  // Helper function to check if bytes might be UTF-8 with BOM
+  function hasUTF8BOM(data: Uint8Array): boolean {
+    return data.length >= 3 && data[0] === 0xEF && data[1] === 0xBB && data[2] === 0xBF;
+  }
+
+  // Helper function to remove padding and version bytes
+  function cleanupBytes(data: Uint8Array): Uint8Array {
+    // Skip version byte if present
+    let start = data[0] === MESSAGE_VERSION ? 1 : 0;
+    
+    // Find the end of actual data (before padding)
+    let end = data.length;
+    while (end > start && (data[end - 1] === 0 || data[end - 1] === 0x80)) {
+      end--;
+    }
+    
+    return data.slice(start, end);
+  }
+
   // Try different decoding strategies
   const attempts = [
-    // Attempt 1: Try decoding the entire message
+    // Attempt 1: Clean up bytes and decode as UTF-8
     () => {
-      if (isValidUTF8(bytes)) {
-        return new TextDecoder('utf-8', { fatal: true }).decode(bytes);
+      const cleaned = cleanupBytes(bytes);
+      if (isValidUTF8(cleaned)) {
+        const text = new TextDecoder('utf-8', { fatal: true }).decode(cleaned);
+        if (text && text.length > 0) return text;
       }
-      throw new Error('Not valid UTF-8');
+      throw new Error('Not valid UTF-8 after cleanup');
     },
-    // Attempt 2: Skip the first byte (version byte)
+    
+    // Attempt 2: Try decoding with BOM handling
     () => {
-      const messageBytes = bytes.slice(1);
-      if (isValidUTF8(messageBytes)) {
-        return new TextDecoder('utf-8', { fatal: true }).decode(messageBytes);
+      const start = hasUTF8BOM(bytes) ? 3 : 0;
+      const data = bytes.slice(start);
+      if (isValidUTF8(data)) {
+        const text = new TextDecoder('utf-8', { fatal: true }).decode(data);
+        if (text && text.length > 0) return text;
       }
-      throw new Error('Not valid UTF-8 after skipping version byte');
+      throw new Error('Not valid UTF-8 with BOM handling');
     },
-    // Attempt 3: Try finding a valid UTF-8 sequence
+    
+    // Attempt 3: Try decoding as Latin1
     () => {
-      const validSequence = findValidUTF8Sequence(bytes);
-      if (validSequence) {
-        return new TextDecoder('utf-8', { fatal: true }).decode(validSequence);
+      const cleaned = cleanupBytes(bytes);
+      const text = Array.from(cleaned)
+        .map(b => String.fromCharCode(b))
+        .join('');
+      if (text && text.length > 0 && /^[\x20-\x7E\xA0-\xFF]*$/.test(text)) {
+        return text;
       }
-      throw new Error('No valid UTF-8 sequence found');
+      throw new Error('Not valid Latin1');
     },
-    // Attempt 4: Try base64 decoding
+    
+    // Attempt 4: Try finding any valid text sequence
     () => {
-      try {
-        const base64 = bytesToHex(bytes)
-          .match(/.{2}/g)!
-          .map(hex => String.fromCharCode(parseInt(hex, 16)))
-          .join('');
-        const decoded = atob(base64);
-        if (decoded && decoded.length > 0) {
-          return decoded;
-        }
-      } catch {}
-      throw new Error('Not valid base64');
-    },
-    // Attempt 5: Try ASCII decoding
-    () => {
-      const ascii = Array.from(bytes)
+      const text = Array.from(bytes)
         .map(b => (b >= 32 && b <= 126) ? String.fromCharCode(b) : '')
         .join('')
         .trim();
-      if (ascii.length > 0) {
-        return ascii;
+      if (text && text.length > 1) { // Require at least 2 characters
+        return text;
       }
-      throw new Error('No valid ASCII characters found');
+      throw new Error('No valid text sequence found');
     }
   ];
 
@@ -120,6 +135,13 @@ function tryDecodeMessage(bytes: Uint8Array): string {
       lastError = error;
       console.log('Decode attempt failed:', error);
     }
+  }
+
+  // If all attempts failed, try to return hex representation
+  const hexString = bytesToHex(bytes);
+  if (hexString) {
+    console.log('Falling back to hex representation:', hexString);
+    return `[Encrypted data: ${hexString}]`;
   }
 
   throw lastError || new Error('Failed to decode message with all attempts');
