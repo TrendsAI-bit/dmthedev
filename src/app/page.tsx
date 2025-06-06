@@ -342,7 +342,7 @@ export default function Home() {
                     <div><strong>Deployer SOL Balance:</strong> {deployerInfo.creatorSolBalance.toFixed(2)} SOL</div>
                   )}
                   {typeof deployerInfo.marketCap === 'number' && (
-                    <div><strong>Token Price:</strong> ${deployerInfo.marketCap.toLocaleString(undefined, {
+                    <div><strong>Token Price:</strong> ${deployerInfo.marketCap.toLocaleString('en-US', {
                       minimumFractionDigits: 2,
                       maximumFractionDigits: 6,
                     })}</div>
@@ -477,7 +477,7 @@ export default function Home() {
                       <div>
                         <div className="font-bold">From: {msg.from.slice(0, 4)}...{msg.from.slice(-4)}</div>
                         <div className="text-sm text-gray-600">
-                          {msg.createdAt ? new Date(msg.createdAt).toLocaleString() : 'Unknown date'}
+                          {msg.createdAt ? new Date(msg.createdAt).toUTCString() : 'Unknown date'}
                         </div>
                       </div>
                       {(msg.tipAmount || 0) > 0 && (
