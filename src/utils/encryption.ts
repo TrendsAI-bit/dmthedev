@@ -34,7 +34,8 @@ function safeDecryptToString(decryptedBytes: Uint8Array | null): string {
 
   try {
     // First try UTF-8 decoding with fatal option for strict validation
-    const text = new TextDecoder('utf-8', { fatal: true }).decode(decryptedBytes);
+    const decoder = new TextDecoder('utf-8', { fatal: true });
+    const text = decoder.decode(decryptedBytes);
     
     // Additional validation - check if the text is actually readable
     if (text.trim().length === 0) {
@@ -45,13 +46,20 @@ function safeDecryptToString(decryptedBytes: Uint8Array | null): string {
   } catch (e) {
     console.error('❌ UTF-8 decode error:', e);
     
-    // Check if it might be binary data
-    if (decryptedBytes.length > 0) {
-      const base64Preview = bytesToBase64(decryptedBytes).slice(0, 20);
-      return `[⚠️ Binary data (${decryptedBytes.length} bytes): ${base64Preview}...]`;
+    // Try non-fatal decoding as fallback
+    try {
+      const fallbackDecoder = new TextDecoder('utf-8', { fatal: false });
+      const text = fallbackDecoder.decode(decryptedBytes);
+      if (text.trim().length > 0 && !text.includes('')) {
+        return text;
+      }
+    } catch (fallbackError) {
+      console.error('Fallback decode failed:', fallbackError);
     }
     
-    return '[❌ Invalid data format]';
+    // If both attempts fail, treat as binary
+    const base64Preview = bytesToBase64(decryptedBytes).slice(0, 20);
+    return `[⚠️ Binary data (${decryptedBytes.length} bytes): ${base64Preview}...]`;
   }
 }
 
