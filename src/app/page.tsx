@@ -15,6 +15,16 @@ const ClientOnlyMessage = dynamic(() => import('@/components/ClientOnlyMessage')
   ssr: false,
 });
 
+// Import DecryptedMessage with SSR disabled
+const DecryptedMessage = dynamic(() => import('@/components/DecryptedMessage'), {
+  ssr: false,
+  loading: () => (
+    <div className="mt-2 p-3 rounded-lg text-sm break-all bg-blue-50 text-blue-800">
+      [🔄 Initializing decryption...]
+    </div>
+  ),
+});
+
 export default function Home() {
   const { publicKey, sendTransaction, connected, wallet } = useWallet();
   const [message, setMessage] = useState('');
@@ -246,12 +256,6 @@ export default function Home() {
       return;
     }
 
-    // Set loading state
-    setDecryptedMessages(prev => ({
-      ...prev,
-      [messageId]: '[🔄 Preparing decryption...]'
-    }));
-
     try {
       const message = messages.find(m => m.id === messageId);
       if (!message) {
@@ -268,18 +272,17 @@ export default function Home() {
         throw new Error('Your wallet does not support message decryption');
       }
 
-      // Update state to trigger client-side decryption
+      // Set state to trigger client-side decryption
       setDecryptedMessages(prev => ({
         ...prev,
-        [messageId]: 'DECRYPT_READY' // Special flag to indicate ready for client-side decryption
+        [messageId]: 'DECRYPT_READY'
       }));
 
     } catch (error: any) {
       console.error('Decryption setup error:', error);
-      const errorMessage = error?.message || 'Unknown error';
       setDecryptedMessages(prev => ({
         ...prev,
-        [messageId]: `[❌ Error: ${String(errorMessage)}]`
+        [messageId]: `[❌ Error: ${error?.message || 'Unknown error'}]`
       }));
     }
   }, [connected, publicKey, wallet, messages]);
@@ -485,7 +488,7 @@ export default function Home() {
                     </div>
                     
                     {decryptedMessages[msg.id!] === 'DECRYPT_READY' ? (
-                      <ClientOnlyMessage
+                      <DecryptedMessage
                         encryptedData={{
                           ciphertext: msg.ciphertext,
                           nonce: msg.nonce,
@@ -497,8 +500,7 @@ export default function Home() {
                     ) : decryptedMessages[msg.id!] ? (
                       <div className={`mt-2 p-3 rounded-lg text-sm break-all ${
                         decryptedMessages[msg.id!].startsWith('[❌') ? 'bg-red-50 text-red-600' :
-                        decryptedMessages[msg.id!].startsWith('[🔄') ? 'bg-blue-50 text-blue-800' :
-                        'bg-gray-100'
+                        'bg-blue-50 text-blue-800'
                       }`}>
                         {decryptedMessages[msg.id!]}
                       </div>
