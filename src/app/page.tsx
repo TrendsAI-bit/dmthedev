@@ -7,8 +7,13 @@ import { getTokenData } from '@/utils/helius';
 import { Connection, PublicKey, Transaction, SystemProgram, LAMPORTS_PER_SOL } from '@solana/web3.js';
 import { encryptMessage, decryptMessage } from '@/utils/encryption';
 import { uploadMessage, fetchMessagesForDeployer, EncryptedMessage } from '@/utils/supabase';
+import dynamic from 'next/dynamic';
 
 const HELIUS_RPC = process.env.NEXT_PUBLIC_HELIUS_RPC || 'https://mainnet.helius-rpc.com/?api-key=7c8a804a-bb84-4963-b03b-421a5d39c887';
+
+const ClientOnlyMessage = dynamic(() => import('@/components/ClientOnlyMessage'), {
+  ssr: false,
+});
 
 export default function Home() {
   const { publicKey, sendTransaction, connected, wallet } = useWallet();
@@ -229,50 +234,6 @@ export default function Home() {
     };
   }, [publicKey?.toBase58()]);
 
-  // Safe message display component
-  const MessageDisplay = ({ message }: { message: unknown }) => {
-    // Use a ref to track if we're mounted to prevent hydration mismatch
-    const isMounted = useRef(false);
-    const [displayText, setDisplayText] = useState('');
-    
-    useEffect(() => {
-      isMounted.current = true;
-      
-      // Convert message to string safely
-      const messageStr = String(message || '');
-      
-      // Set the display text only after mounting
-      if (isMounted.current) {
-        setDisplayText(messageStr);
-      }
-    }, [message]);
-
-    // During SSR or before mount, return a placeholder
-    if (!isMounted.current) {
-      return null;
-    }
-
-    // Handle different message types
-    const isError = displayText.startsWith('[❌');
-    const isBinary = displayText.startsWith('[Binary data]') || displayText.startsWith('[Encoded data]');
-    const isJson = !isError && !isBinary && (displayText.startsWith('{') || displayText.startsWith('['));
-
-    // Select style based on content type
-    const style = isError ? 'bg-red-50 text-red-600' 
-      : isBinary ? 'bg-yellow-50 text-yellow-800'
-      : isJson ? 'bg-blue-50 text-blue-800'
-      : 'bg-gray-100';
-
-    // Additional classes for different content types
-    const additionalClasses = (isBinary || isJson) ? 'font-mono whitespace-pre-wrap' : '';
-
-    return displayText ? (
-      <div className={`mt-2 p-3 rounded-lg text-sm break-all ${style} ${additionalClasses}`}>
-        {displayText}
-      </div>
-    ) : null;
-  };
-
   // Update the handleDecryptMessage function
   const handleDecryptMessage = useCallback(async (messageId: string) => {
     if (!connected || !publicKey || !wallet) {
@@ -280,15 +241,15 @@ export default function Home() {
       return;
     }
 
-    // Don't decrypt if already decrypted
-    if (decryptedMessages[messageId] && !String(decryptedMessages[messageId]).startsWith('[')) {
+    // Don't decrypt if already decrypting
+    if (decryptedMessages[messageId]?.startsWith('[🔄')) {
       return;
     }
 
     // Set loading state
     setDecryptedMessages(prev => ({
       ...prev,
-      [messageId]: '[🔄 Decrypting...]'
+      [messageId]: '[🔄 Preparing decryption...]'
     }));
 
     try {
@@ -307,25 +268,14 @@ export default function Home() {
         throw new Error('Your wallet does not support message decryption');
       }
 
-      // Decrypt the message - this now always returns a string
-      const decrypted = await decryptMessage(
-        {
-          ciphertext: message.ciphertext,
-          nonce: message.nonce,
-          ephemeralPublicKey: message.ephemeralPublicKey
-        },
-        wallet.adapter,
-        message.to
-      );
-
-      // Update state with the decrypted message
+      // Update state to trigger client-side decryption
       setDecryptedMessages(prev => ({
         ...prev,
-        [messageId]: decrypted // decrypted is guaranteed to be a string
+        [messageId]: 'DECRYPT_READY' // Special flag to indicate ready for client-side decryption
       }));
 
     } catch (error: any) {
-      console.error('Decryption error:', error);
+      console.error('Decryption setup error:', error);
       const errorMessage = error?.message || 'Unknown error';
       setDecryptedMessages(prev => ({
         ...prev,
@@ -534,8 +484,24 @@ export default function Home() {
                       )}
                     </div>
                     
-                    {decryptedMessages[msg.id!] ? (
-                      <MessageDisplay message={decryptedMessages[msg.id!]} />
+                    {decryptedMessages[msg.id!] === 'DECRYPT_READY' ? (
+                      <ClientOnlyMessage
+                        encryptedData={{
+                          ciphertext: msg.ciphertext,
+                          nonce: msg.nonce,
+                          ephemeralPublicKey: msg.ephemeralPublicKey
+                        }}
+                        wallet={wallet?.adapter}
+                        recipientAddress={msg.to}
+                      />
+                    ) : decryptedMessages[msg.id!] ? (
+                      <div className={`mt-2 p-3 rounded-lg text-sm break-all ${
+                        decryptedMessages[msg.id!].startsWith('[❌') ? 'bg-red-50 text-red-600' :
+                        decryptedMessages[msg.id!].startsWith('[🔄') ? 'bg-blue-50 text-blue-800' :
+                        'bg-gray-100'
+                      }`}>
+                        {decryptedMessages[msg.id!]}
+                      </div>
                     ) : (
                       <button
                         onClick={() => handleDecryptMessage(msg.id!)}
