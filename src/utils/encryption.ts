@@ -82,50 +82,79 @@ function tryDecodeMessage(bytes: Uint8Array): string {
 
   // Helper function to extract message content
   function extractMessage(data: Uint8Array): Uint8Array {
-    // Check version byte
-    if (data[0] !== MESSAGE_VERSION) {
-      throw new Error('Invalid message version');
+    try {
+      // Check if this is a new format message (version + length + content)
+      if (data[0] === MESSAGE_VERSION) {
+        // Extract length from bytes 1-4 (big-endian)
+        const length = (data[1] << 24) | (data[2] << 16) | (data[3] << 8) | data[4];
+        
+        // Validate length
+        if (length > 0 && length <= data.length - 5) {
+          // Extract message content
+          return data.slice(5, 5 + length);
+        }
+      }
+      
+      // If not a new format message, try legacy format handling
+      return data;
+    } catch (error) {
+      console.log('Message extraction failed:', error);
+      return data;
     }
-    
-    // Extract length from bytes 1-4 (big-endian)
-    const length = (data[1] << 24) | (data[2] << 16) | (data[3] << 8) | data[4];
-    
-    // Validate length
-    if (length <= 0 || length > data.length - 5) {
-      throw new Error('Invalid message length');
-    }
-    
-    // Extract message content
-    return data.slice(5, 5 + length);
   }
 
-  try {
-    // Try to extract and decode the message
-    const messageContent = extractMessage(bytes);
-    const decoder = new TextDecoder('utf-8', { fatal: true });
-    const text = decoder.decode(messageContent);
-    console.log('Successfully decoded message:', text);
-    return text;
-  } catch (error) {
-    console.log('Standard decoding failed:', error);
-    
-    // Fallback: try to find any valid UTF-8 sequence
-    try {
-      const decoder = new TextDecoder('utf-8', { fatal: false });
-      const text = decoder.decode(bytes).trim();
+  // Try different decoding strategies
+  const attempts = [
+    // Attempt 1: Try new format with version byte
+    () => {
+      const messageContent = extractMessage(bytes);
+      const decoder = new TextDecoder('utf-8', { fatal: true });
+      const text = decoder.decode(messageContent);
       if (text && text.length > 0) {
-        console.log('Fallback decoding succeeded:', text);
+        console.log('Successfully decoded with new format:', text);
         return text;
       }
-    } catch (error) {
-      console.log('Fallback decoding failed:', error);
-    }
+      throw new Error('Invalid message format');
+    },
     
-    // Last resort: show hex representation
-    const hexString = bytesToHex(bytes);
-    console.log('Falling back to hex representation:', hexString);
-    return `[Encrypted data: ${hexString}]`;
+    // Attempt 2: Try UTF-8 decoding directly
+    () => {
+      const decoder = new TextDecoder('utf-8', { fatal: true });
+      const text = decoder.decode(bytes);
+      if (text && text.length > 0) {
+        console.log('Successfully decoded with UTF-8:', text);
+        return text;
+      }
+      throw new Error('Invalid UTF-8');
+    },
+    
+    // Attempt 3: Try decoding as ASCII
+    () => {
+      const text = Array.from(bytes)
+        .map(b => (b >= 32 && b <= 126) ? String.fromCharCode(b) : '')
+        .join('')
+        .trim();
+      if (text && text.length > 0) {
+        console.log('Successfully decoded as ASCII:', text);
+        return text;
+      }
+      throw new Error('No valid ASCII characters');
+    }
+  ];
+
+  for (const attempt of attempts) {
+    try {
+      const result = attempt();
+      if (result) return result;
+    } catch (error) {
+      console.log('Decode attempt failed:', error);
+    }
   }
+
+  // Last resort: show hex representation
+  const hexString = bytesToHex(bytes);
+  console.log('Falling back to hex representation:', hexString);
+  return `[Encrypted data: ${hexString}]`;
 }
 
 function validateEncryptedData(data: EncryptedData): void {

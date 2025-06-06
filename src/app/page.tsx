@@ -198,9 +198,37 @@ export default function Home() {
     } catch (error) {
       console.error('Failed to fetch messages:', error);
     }
-  }, [publicKey]);
+  }, [publicKey?.toBase58()]);
 
-  const handleDecryptMessage = async (messageId: string) => {
+  // Fetch messages when wallet connects/disconnects
+  useEffect(() => {
+    let mounted = true;
+
+    const loadMessages = async () => {
+      if (publicKey) {
+        try {
+          const fetchedMessages = await fetchMessagesForDeployer(publicKey.toBase58());
+          if (mounted) {
+            setMessages(fetchedMessages);
+          }
+        } catch (error) {
+          console.error('Failed to fetch messages:', error);
+        }
+      } else if (mounted) {
+        setMessages([]);
+        setDecryptedMessages({});
+      }
+    };
+
+    loadMessages();
+
+    return () => {
+      mounted = false;
+    };
+  }, [publicKey?.toBase58()]);
+
+  // Handle message decryption
+  const handleDecryptMessage = useCallback(async (messageId: string) => {
     if (!connected || !publicKey || !wallet) {
       alert('Please connect your wallet first');
       return;
@@ -251,17 +279,7 @@ export default function Home() {
       console.error('Decryption error:', error);
       alert(`Failed to decrypt message: ${error.message}`);
     }
-  };
-
-  // Remove the queue-based decryption system
-  useEffect(() => {
-    if (publicKey) {
-      fetchMessages();
-    } else {
-      setMessages([]);
-      setDecryptedMessages({});
-    }
-  }, [publicKey, fetchMessages]);
+  }, [connected, publicKey, wallet, messages, decryptedMessages]);
 
   return (
     <main className="min-h-screen">
