@@ -33,17 +33,20 @@ function safelyDecodeBytes(bytes: Uint8Array): string {
   }
 
   try {
-    const decoded = new TextDecoder('utf-8', { fatal: true }).decode(bytes);
-    return decoded;
+    // Attempt UTF-8 decoding
+    const text = new TextDecoder('utf-8', { fatal: true }).decode(bytes);
+    if (!text) {
+      throw new Error('Empty text after decoding');
+    }
+    return text;
   } catch (e) {
     console.warn('⚠️ UTF-8 decode failed:', e);
     // Convert to base64 for safe preview
     try {
-      const previewBytes = bytes.slice(0, 24);
-      const base64 = bytesToBase64(previewBytes);
+      const base64 = encodeBase64(bytes.slice(0, 24));
       return `[⚠️ Binary data (${bytes.length} bytes): ${base64}...]`;
     } catch (e2) {
-      console.error('Failed to create base64 preview:', e2);
+      console.error('Base64 encoding failed:', e2);
       return '[❌ Invalid binary data]';
     }
   }
@@ -89,7 +92,7 @@ function validateEncryptedData(data: EncryptedData): void {
 
 export function encryptMessage(message: string, recipientPublicKeyB58: string): EncryptedData {
   try {
-    console.log('Encrypting message:', message);
+    console.log('Encrypting message...');
 
     // Convert recipient's public key from Base58
     const recipientPublicKey = bs58.decode(recipientPublicKeyB58);
@@ -106,17 +109,18 @@ export function encryptMessage(message: string, recipientPublicKeyB58: string): 
     // Generate shared key
     const sharedKey = box.before(recipientPublicKey, ephemeralKeypair.secretKey);
 
-    // Strictly enforce UTF-8 encoding
+    // Encode message as UTF-8
     const messageBytes = new TextEncoder().encode(message);
-    console.log('UTF-8 encoded message length:', messageBytes.length);
+    console.log('Message length:', messageBytes.length);
 
     // Encrypt the message
     const encrypted = box.after(messageBytes, nonce, sharedKey);
     if (!encrypted) {
       throw new Error('Encryption failed');
     }
-    console.log('Encrypted bytes length:', encrypted.length);
+    console.log('Encrypted length:', encrypted.length);
 
+    // Encode all binary data as base64
     const result = {
       ciphertext: encodeBase64(encrypted),
       nonce: encodeBase64(nonce),
@@ -152,22 +156,24 @@ export async function decryptMessage(
     const hash = sha512(signatureBytes);
     const secretKey = new Uint8Array(hash.slice(0, box.secretKeyLength));
 
-    // Decode encrypted components
-    const ciphertext = safeDecodeBase64(encryptedData.ciphertext, 'ciphertext');
-    const nonce = safeDecodeBase64(encryptedData.nonce, 'nonce');
-    const ephemeralPublicKey = safeDecodeBase64(encryptedData.ephemeralPublicKey, 'ephemeralPublicKey');
+    // Decode base64 components
+    const ciphertext = decodeBase64(encryptedData.ciphertext);
+    const nonce = decodeBase64(encryptedData.nonce);
+    const ephemeralPublicKey = decodeBase64(encryptedData.ephemeralPublicKey);
 
     // Generate shared key
     const sharedKey = box.before(ephemeralPublicKey, secretKey);
 
     // Decrypt
     const decrypted = box.after(ciphertext, nonce, sharedKey);
-    console.log('Decryption result:', decrypted ? 'success' : 'failed');
+    if (!decrypted) {
+      throw new Error('Decryption failed');
+    }
 
-    // Always return a string
-    return safeDecryptToString(decrypted);
+    // Safely decode to string
+    return safelyDecodeBytes(decrypted);
   } catch (error) {
     console.error('Decryption failed:', error);
-    return '[❌ Decryption error]';
+    return `[❌ Error: ${error instanceof Error ? error.message : 'Unknown error'}]`;
   }
 } 

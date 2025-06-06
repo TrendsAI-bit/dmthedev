@@ -234,29 +234,35 @@ export default function Home() {
     const [displayText, setDisplayText] = useState<string>('[Encrypted data]');
     
     useEffect(() => {
-      // Ensure we're working with a string
-      const safeMessage = typeof message === 'string' 
-        ? message 
-        : '[❌ Invalid message type]';
+      let safeMessage: string;
       
+      try {
+        // Handle different types of input
+        if (typeof message === 'string') {
+          safeMessage = message;
+        } else if (message instanceof Uint8Array) {
+          safeMessage = '[⚠️ Cannot display binary data directly]';
+        } else if (message === null || message === undefined) {
+          safeMessage = '[❌ No message data]';
+        } else {
+          safeMessage = '[❌ Invalid message format]';
+        }
+      } catch (e) {
+        console.error('Message conversion error:', e);
+        safeMessage = '[❌ Message conversion failed]';
+      }
+
       setDisplayText(safeMessage);
     }, [message]);
 
-    // Determine message type for styling
-    const messageType = displayText.startsWith('[❌') ? 'error' 
-      : displayText.startsWith('[⚠️') ? 'warning'
-      : 'normal';
-
-    const messageStyle = {
-      error: 'bg-red-50 font-mono text-sm break-all text-red-600',
-      warning: 'bg-yellow-50 font-mono text-sm break-all text-yellow-800',
-      normal: 'bg-gray-100 font-comic break-words'
-    }[messageType];
+    // Style based on message type
+    const style = displayText.startsWith('[❌') ? 'bg-red-50 text-red-600' 
+      : displayText.startsWith('[⚠️') ? 'bg-yellow-50 text-yellow-800'
+      : 'bg-gray-100';
 
     return (
-      <div className={`mt-2 p-3 rounded-lg ${messageStyle}`}>
-        {/* Always ensure string rendering */}
-        {typeof displayText === 'string' ? displayText : '[❌ Invalid display data]'}
+      <div className={`mt-2 p-3 rounded-lg font-mono text-sm break-all ${style}`}>
+        {displayText}
       </div>
     );
   };
@@ -268,7 +274,7 @@ export default function Home() {
       return;
     }
 
-    // Don't decrypt if already decrypted successfully
+    // Don't decrypt if already decrypted
     if (decryptedMessages[messageId] && !String(decryptedMessages[messageId]).startsWith('[')) {
       return;
     }
@@ -295,7 +301,7 @@ export default function Home() {
         throw new Error('Your wallet does not support message decryption');
       }
 
-      // Decrypt the message
+      // Decrypt the message - this now always returns a string
       const decrypted = await decryptMessage(
         {
           ciphertext: message.ciphertext,
@@ -306,17 +312,18 @@ export default function Home() {
         message.to
       );
 
-      // decryptMessage now always returns a string
+      // Update state with the decrypted message
       setDecryptedMessages(prev => ({
         ...prev,
-        [messageId]: decrypted
+        [messageId]: decrypted // decrypted is guaranteed to be a string
       }));
 
     } catch (error: any) {
       console.error('Decryption error:', error);
+      const errorMessage = error?.message || 'Unknown error';
       setDecryptedMessages(prev => ({
         ...prev,
-        [messageId]: `[❌ Error: ${String(error?.message || 'Failed to decrypt')}]`
+        [messageId]: `[❌ Error: ${String(errorMessage)}]`
       }));
     }
   }, [connected, publicKey, wallet, messages]);
