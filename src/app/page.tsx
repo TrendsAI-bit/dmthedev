@@ -104,23 +104,28 @@ export default function Home() {
     try {
       console.log("🔑 Deriving recipient key...");
       
-      // Create a mock wallet for the deployer to simulate their signature
+      // Use a deterministic approach based on the deployer's wallet address
+      // This ensures both sender and receiver derive the same key
       const deployerAddress = deployerInfo.address;
       
-      // In a real scenario, we would ask the deployer to sign this message
-      // For now, we'll create a deterministic key based on their address
+      // Create a deterministic seed from the deployer's address
+      // This will always produce the same result for the same address
       const message = `DM_DEV_DECRYPT:${deployerAddress}`;
       const messageBytes = new TextEncoder().encode(message);
       
-      // Create a deterministic signature for the deployer
-      // In real usage, the deployer would sign this with their wallet
+      // Use the deployer's public key bytes as a deterministic seed
       const deployerPublicKeyBytes = bs58.decode(deployerAddress);
-      const deterministicSignature = new Uint8Array(64);
-      for (let i = 0; i < 64; i++) {
-        deterministicSignature[i] = (deployerPublicKeyBytes[i % 32] + messageBytes[i % messageBytes.length]) % 256;
-      }
       
-      // Create mock deployer wallet
+      // Create a deterministic 64-byte "signature" by combining and hashing
+      const combinedData = new Uint8Array(messageBytes.length + deployerPublicKeyBytes.length);
+      combinedData.set(messageBytes, 0);
+      combinedData.set(deployerPublicKeyBytes, messageBytes.length);
+      
+      // Hash to create deterministic signature
+      const { sha512 } = await import('@noble/hashes/sha512');
+      const deterministicSignature = sha512(combinedData);
+      
+      // Create mock deployer wallet that will produce the same signature every time
       const mockDeployerWallet = {
         publicKey: { toBase58: () => deployerAddress },
         signMessage: async () => deterministicSignature,
@@ -135,6 +140,7 @@ export default function Home() {
       setIsDerivedKeyReady(true);
       
       console.log("✅ Recipient key derived:", derivedPublicKeyBase58);
+      console.log("🔍 This key is deterministic based on address:", deployerAddress);
       
     } catch (error) {
       console.error('Failed to derive recipient key:', error);

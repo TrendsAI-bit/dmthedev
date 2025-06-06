@@ -167,17 +167,28 @@ export async function deriveKeypairFromWallet(wallet: any): Promise<{ publicKey:
   }
 
   const walletAddress = wallet.publicKey.toBase58();
-  const signedMessage = await wallet.signMessage(
-    new TextEncoder().encode(`DM_DEV_DECRYPT:${walletAddress}`)
-  );
   
-  console.log("✅ Got wallet signature");
+  // Use deterministic approach instead of requiring user signature
+  // This ensures the same key is derived every time for the same wallet
+  const message = `DM_DEV_DECRYPT:${walletAddress}`;
+  const messageBytes = new TextEncoder().encode(message);
   
-  const hash = sha512(signedMessage);
+  // Create deterministic signature from wallet address
+  const walletPublicKeyBytes = bs58.decode(walletAddress);
+  const combinedData = new Uint8Array(messageBytes.length + walletPublicKeyBytes.length);
+  combinedData.set(messageBytes, 0);
+  combinedData.set(walletPublicKeyBytes, messageBytes.length);
+  
+  // Hash to create deterministic signature
+  const deterministicSignature = sha512(combinedData);
+  
+  console.log("✅ Created deterministic signature for", walletAddress);
+  
+  const hash = sha512(deterministicSignature);
   const privateKey = hash.slice(0, 32); // Ed25519 private key
   const keypair = box.keyPair.fromSecretKey(privateKey);
   
-  console.log("✅ Derived keypair from signature");
+  console.log("✅ Derived keypair from deterministic signature");
   return keypair;
 }
 
