@@ -33,23 +33,27 @@ function safeDecryptToString(decryptedBytes: Uint8Array | null): string {
   }
 
   try {
-    // First try UTF-8 decoding with fatal option for strict validation
+    // Attempt UTF-8 decoding with strict validation
     const text = new TextDecoder('utf-8', { fatal: true }).decode(decryptedBytes);
     
-    // Additional validation - check if the text is actually readable
-    if (text.trim().length === 0) {
-      throw new Error('Empty message');
+    // Validate the decoded text
+    if (!text || text.trim().length === 0) {
+      throw new Error('Empty or invalid text');
     }
-    
+
+    // Additional validation to ensure it's printable text
+    if (/[\x00-\x08\x0B\x0C\x0E-\x1F]/.test(text)) {
+      throw new Error('Contains control characters');
+    }
+
     return text;
   } catch (e) {
-    console.error('❌ UTF-8 decode error:', e);
+    console.error('❌ Decoding error:', e);
     
-    // Check if it might be binary data
+    // Format binary data preview
     if (decryptedBytes.length > 0) {
-      const base64Data = bytesToBase64(decryptedBytes);
-      const previewLength = Math.min(20, base64Data.length);
-      return `[⚠️ Binary data (${decryptedBytes.length} bytes): ${base64Data.slice(0, previewLength)}...]`;
+      const base64Preview = bytesToBase64(decryptedBytes).slice(0, 20);
+      return `[⚠️ Binary data (${decryptedBytes.length} bytes): ${base64Preview}...]`;
     }
     
     return '[❌ Invalid data format]';
@@ -106,17 +110,16 @@ export function encryptMessage(message: string, recipientPublicKeyB58: string): 
     // Generate shared key
     const sharedKey = box.before(recipientPublicKey, ephemeralKeypair.secretKey);
 
-    // Encode message as UTF-8
-    const encoder = new TextEncoder();
-    const messageBytes = encoder.encode(message);
-    console.log('UTF-8 encoded message:', bytesToHex(messageBytes));
+    // Strictly enforce UTF-8 encoding
+    const messageBytes = new TextEncoder().encode(message);
+    console.log('UTF-8 encoded message length:', messageBytes.length);
 
     // Encrypt the message
     const encrypted = box.after(messageBytes, nonce, sharedKey);
     if (!encrypted) {
       throw new Error('Encryption failed');
     }
-    console.log('Encrypted bytes:', bytesToHex(encrypted));
+    console.log('Encrypted bytes length:', encrypted.length);
 
     const result = {
       ciphertext: encodeBase64(encrypted),
@@ -153,7 +156,7 @@ export async function decryptMessage(
     const hash = sha512(signatureBytes);
     const secretKey = new Uint8Array(hash.slice(0, box.secretKeyLength));
 
-    // Decode encrypted components
+    // Decode encrypted components with validation
     const ciphertext = safeDecodeBase64(encryptedData.ciphertext, 'ciphertext');
     const nonce = safeDecodeBase64(encryptedData.nonce, 'nonce');
     const ephemeralPublicKey = safeDecodeBase64(encryptedData.ephemeralPublicKey, 'ephemeralPublicKey');

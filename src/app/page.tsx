@@ -300,20 +300,27 @@ export default function Home() {
         return;
       }
 
+      // Safely convert any non-string values
+      const safeMessage = String(message);
+
       // Handle error and binary messages immediately
-      if (message.startsWith('[❌') || message.startsWith('[⚠️')) {
-        setDisplayText(message);
+      if (safeMessage.startsWith('[❌') || safeMessage.startsWith('[⚠️')) {
+        setDisplayText(safeMessage);
         return;
       }
 
       // Set the actual message after mount
-      setDisplayText(message);
+      setDisplayText(safeMessage);
     }, [message]);
 
+    // Determine style based on message type
+    const isErrorOrBinary = displayText.startsWith('[❌') || displayText.startsWith('[⚠️');
+    const messageStyle = isErrorOrBinary 
+      ? 'bg-red-50 font-mono text-sm break-all'
+      : 'bg-gray-100 font-comic break-words';
+
     return (
-      <div className={`mt-2 p-3 rounded-lg ${
-        displayText.startsWith('[') ? 'bg-red-50 font-mono text-sm break-all' : 'bg-gray-100 font-comic break-words'
-      }`}>
+      <div className={`mt-2 p-3 rounded-lg ${messageStyle}`}>
         {displayText}
       </div>
     );
