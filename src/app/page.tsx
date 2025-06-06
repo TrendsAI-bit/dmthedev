@@ -319,41 +319,46 @@ export default function Home() {
 
   // Message display component
   const MessageDisplay = ({ message }: { message: string }) => {
-    // Initialize with null to prevent hydration mismatch
+    const [mounted, setMounted] = useState(false);
     const [displayText, setDisplayText] = useState<string | null>(null);
-    const [isClient, setIsClient] = useState(false);
     
+    // Handle mounting state
     useEffect(() => {
-      setIsClient(true);
+      setMounted(true);
+      return () => setMounted(false);
     }, []);
 
+    // Handle message updates only after mounting
     useEffect(() => {
+      if (!mounted) return;
+
       if (!message || typeof message !== 'string') {
         setDisplayText('[Invalid message format]');
         return;
       }
 
-      // Handle error and binary messages immediately
       if (message.startsWith('[❌') || message.startsWith('[⚠️')) {
         setDisplayText(message);
         return;
       }
 
-      // Set the actual message after mount
       setDisplayText(message);
-    }, [message]);
+    }, [message, mounted]);
 
-    // Show nothing during SSR to prevent hydration mismatch
-    if (!isClient) {
-      return <div className="mt-2 p-3 rounded-lg bg-gray-100"></div>;
+    // During SSR and initial client render, return a minimal div
+    if (!mounted) {
+      return <div className="mt-2 p-3 rounded-lg bg-gray-100" suppressHydrationWarning />;
     }
 
     return (
-      <div className={`mt-2 p-3 rounded-lg ${
-        !displayText || displayText.startsWith('[') 
-          ? 'bg-red-50 font-mono text-sm break-all' 
-          : 'bg-gray-100 font-comic break-words'
-      }`}>
+      <div 
+        className={`mt-2 p-3 rounded-lg ${
+          !displayText || displayText.startsWith('[') 
+            ? 'bg-red-50 font-mono text-sm break-all' 
+            : 'bg-gray-100 font-comic break-words'
+        }`}
+        suppressHydrationWarning
+      >
         {displayText || '[Encrypted data]'}
       </div>
     );

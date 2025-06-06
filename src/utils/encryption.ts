@@ -32,32 +32,39 @@ function safeDecryptToString(decryptedBytes: Uint8Array | null): string {
     return '[❌ Failed to decrypt]';
   }
 
+  // First try strict UTF-8 decoding
   try {
-    // First try UTF-8 decoding with fatal option for strict validation
     const decoder = new TextDecoder('utf-8', { fatal: true });
     const text = decoder.decode(decryptedBytes);
     
-    // Additional validation - check if the text is actually readable
-    if (text.trim().length === 0) {
+    // Validate the decoded text
+    if (!text || text.trim().length === 0) {
       throw new Error('Empty message');
+    }
+    
+    // Check for common UTF-8 corruption patterns
+    if (text.includes('') || /[\x00-\x08\x0B\x0C\x0E-\x1F]/.test(text)) {
+      throw new Error('Invalid characters detected');
     }
     
     return text;
   } catch (e) {
-    console.error('❌ UTF-8 decode error:', e);
+    console.error('❌ Strict UTF-8 decode error:', e);
     
-    // Try non-fatal decoding as fallback
+    // Try lenient decoding as fallback
     try {
       const fallbackDecoder = new TextDecoder('utf-8', { fatal: false });
       const text = fallbackDecoder.decode(decryptedBytes);
-      if (text.trim().length > 0 && !text.includes('')) {
+      
+      // If we got a clean fallback result, use it
+      if (text && text.trim().length > 0 && !text.includes('')) {
         return text;
       }
     } catch (fallbackError) {
       console.error('Fallback decode failed:', fallbackError);
     }
     
-    // If both attempts fail, treat as binary
+    // If all decoding attempts fail, return as binary data
     const base64Preview = bytesToBase64(decryptedBytes).slice(0, 20);
     return `[⚠️ Binary data (${decryptedBytes.length} bytes): ${base64Preview}...]`;
   }
