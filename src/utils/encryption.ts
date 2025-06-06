@@ -153,6 +153,17 @@ function fromBase64(base64: string): Uint8Array {
   return bytes;
 }
 
+// Helper to convert base64 to base58 for Phantom
+function base64toBase58(base64: string): string {
+    const uint8array = fromBase64(base64);
+    return bs58.encode(uint8array);
+}
+
+// Helper to convert base58 to Uint8Array for Phantom
+function base58toUint8Array(base58String: string): Uint8Array {
+    return bs58.decode(base58String);
+}
+
 export async function encryptMessage(message: string, recipientPublicKey: string): Promise<EncryptedData> {
   try {
     console.log("Starting v2 encryption process");
@@ -188,44 +199,59 @@ export async function encryptMessage(message: string, recipientPublicKey: string
 }
 
 /**
- * Decrypts a message using the wallet's native decryption function.
- * This is the correct, secure way to decrypt, as it uses the user's
- * real private key without exposing it.
+ * Decrypts a message using Phantom's x25519_decrypt method.
+ * This is the correct, secure way to decrypt with Phantom.
+ * @param encryptedData The encrypted data object.
+ * @param walletAdapter The wallet adapter instance from useWallet().wallet.adapter.
  */
 export async function decryptMessage(
   encryptedData: EncryptedData, 
-  wallet: any, // The wallet adapter instance
-  recipientAddress: string
+  walletAdapter: any
 ): Promise<Uint8Array> {
   try {
-    console.log("Starting decryption using wallet's native function...");
+    console.log(`Starting decryption for wallet: ${walletAdapter.name}`);
 
-    if (!wallet.decrypt) {
-      throw new Error("The connected wallet does not support the required decryption feature.");
+    // This implementation is specific to Phantom wallet.
+    if (walletAdapter.name !== 'Phantom') {
+      throw new Error(`Decryption is not supported for ${walletAdapter.name} yet. Only Phantom is supported.`);
+    }
+
+    // The wallet adapter doesn't expose the underlying provider in a standard way.
+    // To call provider-specific methods like Phantom's `x25519_decrypt`, we
+    // must access the private `_provider` property. This is not ideal but
+    // is a common workaround. We cast to `any` to bypass TypeScript's type checks.
+    const provider = (walletAdapter as any)._provider;
+    if (!provider || !provider.request) {
+        throw new Error("The wallet's provider is not available or does not support `request`.");
     }
     
-    // The data needs to be in the format the wallet's decrypt method expects.
-    // This typically includes the ciphertext, nonce, and the ephemeral public key
-    // that the sender generated.
+    // Phantom's x25519_decrypt method requires the data to be base58 encoded.
     const payload = {
-      ciphertext: encryptedData.ciphertext,
-      nonce: encryptedData.nonce,
-      ephemeralPublicKey: encryptedData.ephemeralPublicKey,
-      recipient: recipientAddress, // Pass the recipient to ensure the correct key is used.
+      nonce: base64toBase58(encryptedData.nonce),
+      publicKey: base64toBase58(encryptedData.ephemeralPublicKey),
+      encryptedMessage: base64toBase58(encryptedData.ciphertext),
     };
-    
-    // The wallet's decrypt method will handle the complex cryptography internally.
-    const decryptedBytes = await wallet.decrypt(payload);
 
-    if (!decryptedBytes) {
-      throw new Error("Decryption returned no data.");
+    console.log("Requesting decryption from Phantom provider...");
+    
+    const decryptedResponse = await provider.request({
+      method: "x25519_decrypt",
+      params: payload
+    });
+
+    // The result from Phantom is a base58 encoded string.
+    const decryptedMessageBase58 = decryptedResponse.decryptedMessage;
+    if (!decryptedMessageBase58) {
+      throw new Error("Decryption with Phantom failed. The result was empty.");
     }
 
-    console.log("✅ Native wallet decryption successful");
+    const decryptedBytes = base58toUint8Array(decryptedMessageBase58);
+
+    console.log("✅ Phantom wallet decryption successful");
     return decryptedBytes;
     
   } catch (error) {
-    console.error("Native wallet decryption failed:", error);
+    console.error("Phantom wallet decryption failed:", error);
     throw error;
   }
 }

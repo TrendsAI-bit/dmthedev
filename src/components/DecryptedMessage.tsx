@@ -29,7 +29,7 @@ export default function DecryptedMessage({ encryptedData, wallet, recipientAddre
 
       try {
         console.log("🔄 Starting decryption process in component");
-        const decryptedUint8Array = await decryptMessage(encryptedData, wallet, recipientAddress);
+        const decryptedUint8Array = await decryptMessage(encryptedData, wallet);
         
         // --- DETAILED DEBUG LOGS ---
         console.log("Decrypted raw bytes:", decryptedUint8Array);

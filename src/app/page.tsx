@@ -243,7 +243,7 @@ export default function Home() {
   }, [publicKey?.toBase58()]);
 
   // Update the handleDecryptMessage function
-  const handleDecryptMessage = useCallback(async (messageId: string) => {
+  const handleDecryptMessageFromList = useCallback(async (messageId: string) => {
     if (!connected || !publicKey || !wallet) {
       alert('Please connect your wallet first');
       return;
@@ -305,7 +305,7 @@ export default function Home() {
         return;
       }
       
-      const decryptedBytes = await decryptMessage(dataToDecrypt, wallet.adapter, publicKey.toBase58());
+      const decryptedBytes = await decryptMessage(dataToDecrypt, wallet.adapter);
       
       // --- DETAILED DEBUG LOGS ---
       console.log("Pasted Decrypted raw bytes:", decryptedBytes);
@@ -578,7 +578,7 @@ export default function Home() {
                           </div>
                         ) : (
                           <button
-                            onClick={() => handleDecryptMessage(msg.id!)}
+                            onClick={() => handleDecryptMessageFromList(msg.id!)}
                             className="w-full mt-2 py-2 px-4 border-2 border-black rounded-lg bg-white hover:bg-gray-50 transition-colors"
                             disabled={!connected}
                           >
