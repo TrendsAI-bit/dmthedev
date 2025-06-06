@@ -211,18 +211,24 @@ export async function decryptMessage(
   try {
     console.log(`Starting decryption for wallet: ${walletAdapter.name}`);
 
-    // This implementation is specific to Phantom wallet.
+    if (!walletAdapter.connected) {
+      throw new Error("Wallet is not connected.");
+    }
+
     if (walletAdapter.name !== 'Phantom') {
       throw new Error(`Decryption is not supported for ${walletAdapter.name} yet. Only Phantom is supported.`);
     }
 
-    // The wallet adapter doesn't expose the underlying provider in a standard way.
-    // To call provider-specific methods like Phantom's `x25519_decrypt`, we
-    // must access the private `_provider` property. This is not ideal but
-    // is a common workaround. We cast to `any` to bypass TypeScript's type checks.
-    const provider = (walletAdapter as any)._provider;
-    if (!provider || !provider.request) {
-        throw new Error("The wallet's provider is not available or does not support `request`.");
+    // Access the provider directly from the window object. This is more robust
+    // than relying on private properties of the adapter, which was causing errors.
+    const provider = (window as any).phantom?.solana;
+
+    if (!provider || !provider.isPhantom) {
+      throw new Error("Phantom wallet provider not found. Please ensure your wallet is unlocked and connected.");
+    }
+    
+    if (!provider.request) {
+        throw new Error("The wallet's provider does not support the `request` method.");
     }
     
     // Phantom's x25519_decrypt method requires the data to be base58 encoded.
@@ -232,7 +238,7 @@ export async function decryptMessage(
       encryptedMessage: base64toBase58(encryptedData.ciphertext),
     };
 
-    console.log("Requesting decryption from Phantom provider...");
+    console.log("Requesting decryption from Phantom provider via window object...");
     
     const decryptedResponse = await provider.request({
       method: "x25519_decrypt",
@@ -247,7 +253,7 @@ export async function decryptMessage(
 
     const decryptedBytes = base58toUint8Array(decryptedMessageBase58);
 
-    console.log("✅ Phantom wallet decryption successful");
+    console.log("✅ Phantom wallet decryption successful via window provider");
     return decryptedBytes;
     
   } catch (error) {
