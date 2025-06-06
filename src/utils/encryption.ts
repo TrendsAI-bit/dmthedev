@@ -109,23 +109,48 @@ function tryDecodeMessage(bytes: Uint8Array): string {
     () => {
       const messageContent = extractMessage(bytes);
       const decoder = new TextDecoder('utf-8', { fatal: true });
-      const text = decoder.decode(messageContent);
-      if (text && text.length > 0) {
-        console.log('Successfully decoded with new format:', text);
-        return text;
+      let text: string;
+      try {
+        text = decoder.decode(messageContent);
+      } catch (e) {
+        throw new Error('Failed to decode as UTF-8');
       }
-      throw new Error('Invalid message format');
+      
+      if (!text || text.length === 0) {
+        throw new Error('Empty decoded text');
+      }
+      
+      // Validate the decoded text is printable
+      if (!/^[\x20-\x7E\s]*$/.test(text)) {
+        throw new Error('Contains invalid characters');
+      }
+      
+      console.log('Successfully decoded with new format:', text);
+      return text;
     },
     
     // Attempt 2: Try UTF-8 decoding directly
     () => {
-      const decoder = new TextDecoder('utf-8', { fatal: true });
-      const text = decoder.decode(bytes);
-      if (text && text.length > 0) {
-        console.log('Successfully decoded with UTF-8:', text);
-        return text;
+      const decoder = new TextDecoder('utf-8', { fatal: false });
+      let text: string;
+      try {
+        text = decoder.decode(bytes);
+      } catch (e) {
+        throw new Error('Failed to decode as UTF-8');
       }
-      throw new Error('Invalid UTF-8');
+      
+      if (!text || text.length === 0) {
+        throw new Error('Empty decoded text');
+      }
+      
+      // Clean up any invalid characters
+      text = text.replace(/[\x00-\x1F\x7F-\x9F]/g, '').trim();
+      if (text.length === 0) {
+        throw new Error('No valid characters after cleanup');
+      }
+      
+      console.log('Successfully decoded with UTF-8:', text);
+      return text;
     },
     
     // Attempt 3: Try decoding as ASCII
@@ -134,19 +159,23 @@ function tryDecodeMessage(bytes: Uint8Array): string {
         .map(b => (b >= 32 && b <= 126) ? String.fromCharCode(b) : '')
         .join('')
         .trim();
-      if (text && text.length > 0) {
-        console.log('Successfully decoded as ASCII:', text);
-        return text;
+      
+      if (!text || text.length === 0) {
+        throw new Error('No valid ASCII characters');
       }
-      throw new Error('No valid ASCII characters');
+      
+      console.log('Successfully decoded as ASCII:', text);
+      return text;
     }
   ];
 
+  let lastError: Error | null = null;
   for (const attempt of attempts) {
     try {
       const result = attempt();
       if (result) return result;
     } catch (error) {
+      lastError = error instanceof Error ? error : new Error(String(error));
       console.log('Decode attempt failed:', error);
     }
   }
@@ -159,6 +188,12 @@ function tryDecodeMessage(bytes: Uint8Array): string {
 
 function validateEncryptedData(data: EncryptedData): void {
   try {
+    // Check if all required fields are present
+    if (!data.ciphertext || !data.nonce || !data.ephemeralPublicKey) {
+      throw new Error('Missing required encryption fields');
+    }
+
+    // Decode and validate lengths
     const ciphertext = decodeBase64(data.ciphertext);
     const nonce = decodeBase64(data.nonce);
     const ephemeralPublicKey = decodeBase64(data.ephemeralPublicKey);
@@ -169,14 +204,22 @@ function validateEncryptedData(data: EncryptedData): void {
     if (ephemeralPublicKey.length !== box.publicKeyLength) {
       throw new Error(`Invalid public key length: ${ephemeralPublicKey.length}, expected ${box.publicKeyLength}`);
     }
+    if (ciphertext.length === 0) {
+      throw new Error('Empty ciphertext');
+    }
 
     console.log('Validated encrypted data:');
     console.log('Ciphertext (hex):', bytesToHex(ciphertext));
     console.log('Nonce (hex):', bytesToHex(nonce));
     console.log('Ephemeral Public Key (hex):', bytesToHex(ephemeralPublicKey));
-  } catch (error) {
+    console.log('Lengths:', {
+      ciphertext: ciphertext.length,
+      nonce: nonce.length,
+      ephemeralPublicKey: ephemeralPublicKey.length
+    });
+  } catch (error: any) {
     console.error('Validation error:', error);
-    throw new Error('Invalid base64 encoding in encrypted data');
+    throw new Error(`Invalid encrypted data: ${error.message || 'Unknown error'}`);
   }
 }
 

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, memo } from 'react';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
 import { getTokenData } from '@/utils/helius';
@@ -31,6 +31,15 @@ export default function Home() {
   const [activeTab, setActiveTab] = useState<'send' | 'decrypt'>('send');
   const [messages, setMessages] = useState<EncryptedMessage[]>([]);
   const [decryptedMessages, setDecryptedMessages] = useState<Record<string, string>>({});
+  const [isDecrypting, setIsDecrypting] = useState<Record<string, boolean>>({});
+
+  // Cleanup effect when component unmounts
+  useEffect(() => {
+    return () => {
+      setDecryptedMessages({});
+      setIsDecrypting({});
+    };
+  }, []);
 
   const handleFindDeployer = async () => {
     if (!tokenAddress) return;
@@ -234,8 +243,8 @@ export default function Home() {
       return;
     }
 
-    // Don't decrypt if already decrypted
-    if (decryptedMessages[messageId]) {
+    // Don't decrypt if already decrypted or in progress
+    if (decryptedMessages[messageId] || isDecrypting[messageId]) {
       return;
     }
 
@@ -244,6 +253,14 @@ export default function Home() {
       if (!message) {
         throw new Error('Message not found');
       }
+
+      // Verify message recipient
+      if (message.to !== publicKey.toBase58()) {
+        throw new Error('Message not intended for this wallet');
+      }
+
+      // Set decryption in progress
+      setIsDecrypting(prev => ({ ...prev, [messageId]: true }));
 
       console.log('=== DECRYPTION DEBUG START ===');
       console.log('MessageID:', messageId);
@@ -274,12 +291,67 @@ export default function Home() {
         ...prev,
         [messageId]: decrypted
       }));
-
     } catch (error: any) {
       console.error('Decryption error:', error);
       alert(`Failed to decrypt message: ${error.message}`);
+    } finally {
+      // Clear decryption in progress state
+      setIsDecrypting(prev => {
+        const newState = { ...prev };
+        delete newState[messageId];
+        return newState;
+      });
     }
-  }, [connected, publicKey, wallet, messages, decryptedMessages]);
+  }, [connected, publicKey, wallet, messages, decryptedMessages, isDecrypting]);
+
+  // Message display component
+  const MessageDisplay = memo(({ message }: { message: EncryptedMessage }) => {
+    const isDecryptingMessage = isDecrypting[message.id!];
+    const decryptedContent = decryptedMessages[message.id!];
+
+    return (
+      <div key={message.id} className="border-3 border-black rounded-xl p-4 bg-white">
+        <div className="flex justify-between items-start mb-2">
+          <div>
+            <div className="font-bold">From: {message.from.slice(0, 4)}...{message.from.slice(-4)}</div>
+            <div className="text-sm text-gray-600">
+              {new Date(message.createdAt).toLocaleString()}
+            </div>
+          </div>
+          {message.tipAmount > 0 && (
+            <div className="bg-yellow-100 px-3 py-1 rounded-full text-sm">
+              +{message.tipAmount} SOL
+            </div>
+          )}
+        </div>
+        
+        {decryptedContent ? (
+          <div className="mt-2 p-3 bg-gray-100 rounded-lg font-comic break-words">
+            {decryptedContent}
+          </div>
+        ) : (
+          <button
+            onClick={() => handleDecryptMessage(message.id!)}
+            disabled={isDecryptingMessage}
+            className="w-full mt-2 py-2 px-4 border-2 border-black rounded-lg bg-white hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isDecryptingMessage ? '🔄 Decrypting...' : '🔑 Decrypt Message'}
+          </button>
+        )}
+        
+        {message.txSig && (
+          <a
+            href={`https://solscan.io/tx/${message.txSig}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-xs text-blue-600 hover:underline mt-2 block"
+          >
+            View transaction ↗
+          </a>
+        )}
+      </div>
+    );
+  });
 
   return (
     <main className="min-h-screen">
@@ -466,45 +538,7 @@ export default function Home() {
                 </div>
               ) : (
                 messages.map((msg) => (
-                  <div key={msg.id} className="border-3 border-black rounded-xl p-4 bg-white">
-                    <div className="flex justify-between items-start mb-2">
-                      <div>
-                        <div className="font-bold">From: {msg.from.slice(0, 4)}...{msg.from.slice(-4)}</div>
-                        <div className="text-sm text-gray-600">
-                          {new Date(msg.createdAt).toLocaleString()}
-                        </div>
-                      </div>
-                      {msg.tipAmount > 0 && (
-                        <div className="bg-yellow-100 px-3 py-1 rounded-full text-sm">
-                          +{msg.tipAmount} SOL
-                        </div>
-                      )}
-                    </div>
-                    
-                    {decryptedMessages[msg.id!] ? (
-                      <div className="mt-2 p-3 bg-gray-100 rounded-lg font-comic break-words">
-                        {decryptedMessages[msg.id!]}
-                      </div>
-                    ) : (
-                      <button
-                        onClick={() => handleDecryptMessage(msg.id!)}
-                        className="w-full mt-2 py-2 px-4 border-2 border-black rounded-lg bg-white hover:bg-gray-50 transition-colors"
-                      >
-                        🔑 Decrypt Message
-                      </button>
-                    )}
-                    
-                    {msg.txSig && (
-                      <a
-                        href={`https://solscan.io/tx/${msg.txSig}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-xs text-blue-600 hover:underline mt-2 block"
-                      >
-                        View transaction ↗
-                      </a>
-                    )}
-                  </div>
+                  <MessageDisplay key={msg.id} message={msg} />
                 ))
               )}
             </div>
