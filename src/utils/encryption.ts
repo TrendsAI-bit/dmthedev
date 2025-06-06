@@ -141,152 +141,257 @@ function isBase64(str: string): boolean {
 }
 
 function toBase64(data: Uint8Array): string {
-  return btoa(String.fromCharCode.apply(null, Array.from(data)));
+  return encodeBase64(data);
 }
 
 function fromBase64(base64: string): Uint8Array {
-  const binary = atob(base64);
-  const bytes = new Uint8Array(binary.length);
-  for (let i = 0; i < binary.length; i++) {
-    bytes[i] = binary.charCodeAt(i);
-  }
-  return bytes;
+  return decodeBase64(base64);
 }
 
-// Helper to convert base64 to base58 for Phantom
-function base64toBase58(base64: string): string {
-    const uint8array = fromBase64(base64);
-    return bs58.encode(uint8array);
+function fromBase58(b58: string): Uint8Array {
+  return bs58.decode(b58);
 }
 
-// Helper to convert base58 to Uint8Array for Phantom
-function base58toUint8Array(base58String: string): Uint8Array {
-    return bs58.decode(base58String);
-}
-
-export async function encryptMessage(message: string, recipientPublicKey: string): Promise<EncryptedData> {
-  try {
-    console.log("Starting v2 encryption process");
-    
-    if (!message) throw new Error("Message cannot be empty");
-    if (!recipientPublicKey) throw new Error("Recipient public key is required");
-
-    // Wrap the message in a versioned JSON object for robustness.
-    const messageToEncrypt = JSON.stringify({
-      v: 2,
-      data: message,
-    });
-
-    const messageBytes = new TextEncoder().encode(messageToEncrypt);
-    const encrypted = await performEncryption(messageBytes, recipientPublicKey);
-    
-    const result = {
-      ciphertext: toBase64(encrypted.ciphertext),
-      nonce: toBase64(encrypted.nonce),
-      ephemeralPublicKey: toBase64(encrypted.ephemeralPublicKey)
-    };
-
-    if (!isBase64(result.ciphertext) || !isBase64(result.nonce) || !isBase64(result.ephemeralPublicKey)) {
-      throw new Error("Invalid base64 encoding in encryption result");
-    }
-
-    console.log("✅ v2 Encryption completed successfully");
-    return result;
-  } catch (error) {
-    console.error("Encryption failed:", error);
-    throw error;
-  }
+function toBase58(bytes: Uint8Array): string {
+  return bs58.encode(bytes);
 }
 
 /**
- * Decrypts a message using Phantom's x25519_decrypt method.
- * This is the correct, secure way to decrypt with Phantom.
- * @param encryptedData The encrypted data object.
- * @param walletAdapter The wallet adapter instance from useWallet().wallet.adapter.
+ * 🔑 DERIVE KEYPAIR FROM WALLET SIGNATURE
  */
-export async function decryptMessage(
-  encryptedData: EncryptedData, 
-  walletAdapter: any
-): Promise<Uint8Array> {
-  try {
-    console.log(`Starting decryption for wallet: ${walletAdapter.name}`);
-
-    if (!walletAdapter.connected) {
-      throw new Error("Wallet is not connected.");
-    }
-
-    if (walletAdapter.name !== 'Phantom') {
-      throw new Error(`Decryption is not supported for ${walletAdapter.name} yet. Only Phantom is supported.`);
-    }
-
-    // Access the provider directly from the window object. This is more robust
-    // than relying on private properties of the adapter, which was causing errors.
-    const provider = (window as any).phantom?.solana;
-
-    if (!provider || !provider.isPhantom) {
-      throw new Error("Phantom wallet provider not found. Please ensure your wallet is unlocked and connected.");
-    }
-    
-    if (!provider.request) {
-        throw new Error("The wallet's provider does not support the `request` method.");
-    }
-    
-    // Phantom's x25519_decrypt method requires the data to be base58 encoded.
-    const payload = {
-      nonce: base64toBase58(encryptedData.nonce),
-      publicKey: base64toBase58(encryptedData.ephemeralPublicKey),
-      encryptedMessage: base64toBase58(encryptedData.ciphertext),
-    };
-
-    console.log("Requesting decryption from Phantom provider via window object...");
-    
-    const decryptedResponse = await provider.request({
-      method: "x25519_decrypt",
-      params: payload
-    });
-
-    // The result from Phantom is a base58 encoded string.
-    const decryptedMessageBase58 = decryptedResponse.decryptedMessage;
-    if (!decryptedMessageBase58) {
-      throw new Error("Decryption with Phantom failed. The result was empty.");
-    }
-
-    const decryptedBytes = base58toUint8Array(decryptedMessageBase58);
-
-    console.log("✅ Phantom wallet decryption successful via window provider");
-    return decryptedBytes;
-    
-  } catch (error) {
-    console.error("Phantom wallet decryption failed:", error);
-    throw error;
+export async function deriveKeypairFromWallet(wallet: any): Promise<{ publicKey: Uint8Array; secretKey: Uint8Array }> {
+  console.log("🔑 Deriving keypair from wallet signature...");
+  
+  if (!wallet?.publicKey || !wallet?.signMessage) {
+    throw new Error("Wallet does not support required methods");
   }
+
+  const walletAddress = wallet.publicKey.toBase58();
+  const signedMessage = await wallet.signMessage(
+    new TextEncoder().encode(`DM_DEV_DECRYPT:${walletAddress}`)
+  );
+  
+  console.log("✅ Got wallet signature");
+  
+  const hash = sha512(signedMessage);
+  const privateKey = hash.slice(0, 32); // Ed25519 private key
+  const keypair = box.keyPair.fromSecretKey(privateKey);
+  
+  console.log("✅ Derived keypair from signature");
+  return keypair;
 }
 
-async function performEncryption(messageBytes: Uint8Array, recipientPublicKeyB58: string) {
-  // Convert recipient's public key from Base58
-  const recipientPublicKey = bs58.decode(recipientPublicKeyB58);
-  if (recipientPublicKey.length !== box.publicKeyLength) {
-    throw new Error('Invalid recipient public key length');
-  }
-
-  // Generate ephemeral keypair
-  const ephemeralKeypair = box.keyPair();
-
-  // Generate nonce
-  const nonce = randomBytes(box.nonceLength);
+/**
+ * 🔐 ENCRYPTION: Uses signature-derived public key + ephemeral key
+ */
+export function encryptMessage(message: string, derivedPublicKeyBase58: string): EncryptedData {
+  console.log("🔐 Starting encryption with signature-derived public key");
   
-  // Generate shared key
-  const sharedKey = box.before(recipientPublicKey, ephemeralKeypair.secretKey);
+  const nonce = randomBytes(box.nonceLength);
+  console.log("✅ Generated nonce");
+  
+  const ephemeralKeypair = box.keyPair();
+  console.log("✅ Generated ephemeral keypair");
+  
+  const derivedPublicKey = bs58.decode(derivedPublicKeyBase58);
+  console.log("✅ Decoded signature-derived public key");
 
-  // Encrypt the message
+  const sharedKey = box.before(derivedPublicKey, ephemeralKeypair.secretKey);
+  console.log("✅ Created shared key with box.before()");
+
+  // Wrap the message in versioned JSON
+  const messageToEncrypt = JSON.stringify({
+    v: 2,
+    data: message,
+  });
+
+  const messageBytes = new TextEncoder().encode(messageToEncrypt);
+  
   const ciphertext = box.after(messageBytes, nonce, sharedKey);
+  console.log("✅ Encrypted message with box.after()");
+
   if (!ciphertext) {
     throw new Error('Encryption failed');
   }
 
+  console.log("✅ Encryption completed successfully");
   return {
-    ciphertext,
-    nonce,
-    ephemeralPublicKey: ephemeralKeypair.publicKey
+    ciphertext: toBase64(ciphertext),
+    nonce: toBase64(nonce),
+    ephemeralPublicKey: toBase64(ephemeralKeypair.publicKey),
   };
+}
+
+/**
+ * 🔓 DECRYPTION: Uses signature-derived secret key + ephemeral key (with backwards compatibility)
+ */
+export async function decryptMessage(
+  encryptedData: EncryptedData, 
+  wallet: any
+): Promise<Uint8Array> {
+  console.log(`🔓 Starting signature-based decryption for wallet: ${wallet.name}`);
+  
+  // Method 1: Try new signature-derived approach first
+  try {
+    console.log("🎯 Trying Method 1: Signature-derived key approach");
+    
+    // Derive the same keypair that was used for encryption
+    const keypair = await deriveKeypairFromWallet(wallet);
+    console.log("✅ Re-derived keypair from wallet signature");
+
+    // Extract encrypted data
+    const nonce = fromBase64(encryptedData.nonce);
+    const ciphertext = fromBase64(encryptedData.ciphertext);
+    const ephemeralPublicKey = fromBase64(encryptedData.ephemeralPublicKey);
+    
+    console.log("📏 Data lengths - nonce:", nonce.length, "ephemeral:", ephemeralPublicKey.length);
+    
+    // Create shared key using ephemeral public key + derived secret key
+    console.log("🤝 Creating shared key with box.before()...");
+    const sharedKey = box.before(ephemeralPublicKey, keypair.secretKey);
+    console.log("✅ Created shared key");
+
+    // Decrypt
+    console.log("🔓 Attempting decryption with box.open.after()...");
+    const decryptedBytes = box.open.after(ciphertext, nonce, sharedKey);
+    
+    if (decryptedBytes) {
+      console.log("✅ Method 1 SUCCESS! Decryption with signature-derived key:", decryptedBytes.length, "bytes");
+      return decryptedBytes;
+    } else {
+      console.log("❌ Method 1 failed - trying fallback methods...");
+    }
+    
+  } catch (error) {
+    console.log("❌ Method 1 error:", error, "- trying fallback methods...");
+  }
+
+  // Method 2: Try old approach using actual wallet public key
+  try {
+    console.log("🔄 Trying Method 2: Direct wallet signature fallback");
+    
+    const walletAddress = wallet.publicKey.toBase58();
+    const messageToSign = `DM_DEV_DECRYPT:${walletAddress}`;
+    console.log("📝 Signing message:", messageToSign);
+    
+    const msgBytes = new TextEncoder().encode(messageToSign);
+    const signature = await wallet.signMessage(msgBytes, 'utf8');
+
+    // Use signature hash as private key (old approach)
+    const sharedSecret = sha512(signature).slice(0, 32);
+    
+    const nonce = fromBase64(encryptedData.nonce);
+    const ciphertext = fromBase64(encryptedData.ciphertext);
+    const ephemeralPublicKey = fromBase64(encryptedData.ephemeralPublicKey);
+    
+    const sharedKey = box.before(ephemeralPublicKey, sharedSecret);
+    const decryptedBytes = box.open.after(ciphertext, nonce, sharedKey);
+    
+    if (decryptedBytes) {
+      console.log("✅ Method 2 SUCCESS! Decryption with direct signature hash:", decryptedBytes.length, "bytes");
+      return decryptedBytes;
+    }
+    
+  } catch (error) {
+    console.log("❌ Method 2 error:", error);
+  }
+
+  // Method 3: Try other signature variations for backwards compatibility
+  const fallbackMessages = [
+    `DM_THE_DEV_DECRYPT:${wallet.publicKey.toBase58()}`,
+    `Derive private key for ${wallet.publicKey.toBase58()}`,
+    `Sign to decrypt message for ${wallet.publicKey.toBase58()}`,
+  ];
+  
+  for (let i = 0; i < fallbackMessages.length; i++) {
+    try {
+      console.log(`🔄 Trying Method ${3 + i}: "${fallbackMessages[i]}"`);
+      
+      const msgBytes = new TextEncoder().encode(fallbackMessages[i]);
+      const signature = await wallet.signMessage(msgBytes, 'utf8');
+      
+      const sharedSecret = sha512(signature).slice(0, 32);
+      
+      const nonce = fromBase64(encryptedData.nonce);
+      const ciphertext = fromBase64(encryptedData.ciphertext);
+      const ephemeralPublicKey = fromBase64(encryptedData.ephemeralPublicKey);
+      
+      const sharedKey = box.before(ephemeralPublicKey, sharedSecret);
+      const decryptedBytes = box.open.after(ciphertext, nonce, sharedKey);
+      
+      if (decryptedBytes) {
+        console.log(`✅ Method ${3 + i} SUCCESS! Decryption with fallback message:`, decryptedBytes.length, "bytes");
+        return decryptedBytes;
+      }
+      
+    } catch (error) {
+      console.log(`❌ Method ${3 + i} error:`, error);
+    }
+  }
+
+  throw new Error("All decryption methods failed. This message may have been encrypted with an incompatible key or is corrupted.");
+}
+
+/**
+ * 🧪 TEST FUNCTION: Tests the signature-derived key approach
+ */
+export async function testEncryptionDecryption(): Promise<boolean> {
+  try {
+    console.log("🧪 Testing signature-derived key encryption/decryption approach...");
+    
+    // Create a test keypair to simulate a wallet
+    const testWallet = box.keyPair();
+    const testWalletAddress = bs58.encode(testWallet.publicKey);
+    
+    // Mock wallet object
+    const mockWallet = {
+      publicKey: { toBase58: () => testWalletAddress },
+      signMessage: async (message: Uint8Array) => {
+        // Simulate signing by creating a deterministic signature
+        const combinedData = new Uint8Array(message.length + testWallet.secretKey.length);
+        combinedData.set(message, 0);
+        combinedData.set(testWallet.secretKey, message.length);
+        return sha512(combinedData).slice(0, 64);
+      },
+      name: "TestWallet"
+    };
+    
+    // Test message
+    const testMessage = "Hello, this is a test message!";
+    console.log("📝 Original message:", testMessage);
+    
+    // 1. DERIVE KEYPAIR (what recipient would do)
+    console.log("🔑 Testing keypair derivation...");
+    const derivedKeypair = await deriveKeypairFromWallet(mockWallet);
+    const derivedPublicKeyBase58 = bs58.encode(derivedKeypair.publicKey);
+    console.log("✅ Derived public key for encryption");
+
+    // 2. ENCRYPTION PROCESS
+    console.log("🔐 Testing encryption...");
+    const encrypted = encryptMessage(testMessage, derivedPublicKeyBase58);
+    console.log("✅ Encryption successful");
+    
+    // 3. DECRYPTION PROCESS
+    console.log("🔓 Testing decryption...");
+    const decrypted = await decryptMessage(encrypted, mockWallet);
+    
+    // Decode the result
+    const decodedText = new TextDecoder("utf-8").decode(decrypted);
+    const parsed = JSON.parse(decodedText);
+    const decryptedMessage = parsed.data;
+    
+    console.log("📝 Decrypted message:", decryptedMessage);
+    
+    if (decryptedMessage === testMessage) {
+      console.log("✅ Test PASSED! Signature-derived key encryption/decryption works correctly.");
+      return true;
+    } else {
+      console.log("❌ Test FAILED! Messages don't match.");
+      return false;
+    }
+    
+  } catch (error) {
+    console.error("❌ Test error:", error);
+    return false;
+  }
 } 

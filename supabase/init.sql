@@ -47,32 +47,37 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql IMMUTABLE;
 
--- Create messages table with proper data types
-CREATE TABLE messages (
-    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-    to_address TEXT NOT NULL,
-    from_address TEXT NOT NULL,
-    ciphertext TEXT NOT NULL CHECK (length(ciphertext) > 0),
-    nonce TEXT NOT NULL CHECK (length(nonce) > 0),
-    ephemeral_public_key TEXT NOT NULL CHECK (length(ephemeral_public_key) > 0),
-    tip_amount DECIMAL(20, 9) DEFAULT 0,
-    tx_sig TEXT,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    
-    -- Add constraints to ensure base64 format
-    CONSTRAINT valid_ciphertext CHECK (ciphertext ~ '^[A-Za-z0-9+/]*={0,2}$'),
-    CONSTRAINT valid_nonce CHECK (nonce ~ '^[A-Za-z0-9+/]*={0,2}$'),
-    CONSTRAINT valid_ephemeral_public_key CHECK (ephemeral_public_key ~ '^[A-Za-z0-9+/]*={0,2}$'),
-    
-    -- Add indexes for better query performance
-    CONSTRAINT valid_addresses CHECK (
-        to_address ~ '^[1-9A-HJ-NP-Za-km-z]{32,44}$' AND
-        from_address ~ '^[1-9A-HJ-NP-Za-km-z]{32,44}$'
-    )
+-- Create messages table for storing encrypted messages
+CREATE TABLE public.messages (
+  id uuid primary key default gen_random_uuid(),
+  sender_address text not null,
+  recipient_address text not null,
+  ciphertext text not null,
+  nonce text not null,
+  ephemeral_public_key text not null,
+  created_at timestamptz not null default now()
 );
 
+-- Sample insert statement for testing
+-- Replace the placeholder values with actual base64-encoded strings and addresses
+-- insert into public.messages (
+--   sender_address,
+--   recipient_address,
+--   ciphertext,
+--   nonce,
+--   ephemeral_public_key
+-- )
+-- values (
+--   'SenderSolanaAddress',
+--   'RecipientSolanaAddress',
+--   'BASE64_ENCRYPTED_DATA',
+--   'BASE64_NONCE',
+--   'BASE64_EPHEMERAL_PUBKEY'
+-- );
+
 -- Create indexes for frequently queried columns
-CREATE INDEX idx_messages_to_address ON messages(to_address);
+CREATE INDEX idx_messages_recipient_address ON messages(recipient_address);
+CREATE INDEX idx_messages_sender_address ON messages(sender_address);
 CREATE INDEX idx_messages_created_at ON messages(created_at);
 
 -- Create RLS policies

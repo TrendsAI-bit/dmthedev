@@ -6,10 +6,10 @@ import { decryptMessage, EncryptedData } from '@/utils/encryption';
 interface Props {
   encryptedData: EncryptedData;
   wallet: any;
-  recipientAddress: string;
+  senderAddress?: string;
 }
 
-export default function DecryptedMessage({ encryptedData, wallet, recipientAddress }: Props) {
+export default function DecryptedMessage({ encryptedData, wallet, senderAddress }: Props) {
   const [output, setOutput] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [mounted, setMounted] = useState(false);
@@ -22,14 +22,14 @@ export default function DecryptedMessage({ encryptedData, wallet, recipientAddre
     if (!mounted) return;
 
     async function handleDecrypt() {
-      if (!encryptedData || !wallet || !recipientAddress) {
-        setError("[Missing data] Required decryption data not available");
+      if (!encryptedData || !wallet?.adapter) {
+        setError("[Missing data] Required decryption data or wallet adapter not available");
         return;
       }
 
       try {
         console.log("🔄 Starting decryption process in component");
-        const decryptedUint8Array = await decryptMessage(encryptedData, wallet);
+        const decryptedUint8Array = await decryptMessage(encryptedData, wallet.adapter);
         
         // --- DETAILED DEBUG LOGS ---
         console.log("Decrypted raw bytes:", decryptedUint8Array);
@@ -93,7 +93,7 @@ export default function DecryptedMessage({ encryptedData, wallet, recipientAddre
     }
 
     handleDecrypt();
-  }, [mounted, encryptedData, wallet, recipientAddress]);
+  }, [mounted, encryptedData, wallet]);
 
   if (!mounted) {
     return (

@@ -1,40 +1,32 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+let supabaseInstance: SupabaseClient | null = null;
 
-export const supabase = createClient(supabaseUrl, supabaseKey);
+export function getSupabaseClient() {
+  if (supabaseInstance) {
+    return supabaseInstance;
+  }
+  
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+
+  if (!supabaseUrl || !supabaseKey) {
+    // This will now only be thrown when the function is called, not during build time.
+    throw new Error('Supabase URL and Key are not set in environment variables.');
+  }
+
+  supabaseInstance = createClient(supabaseUrl, supabaseKey);
+  return supabaseInstance;
+}
 
 export interface EncryptedMessage {
   id?: string;
-  to: string;
-  from: string;
+  senderAddress: string;
+  recipientAddress: string;
   ciphertext: string;
   nonce: string;
   ephemeralPublicKey: string;
-  tipAmount?: number;
-  txSig?: string;
   createdAt?: string;
-}
-
-// Add function to check table structure
-async function checkTableStructure() {
-  try {
-    const { data, error } = await supabase
-      .from('information_schema.columns')
-      .select('column_name, data_type')
-      .eq('table_name', 'messages');
-
-    if (error) {
-      console.error('Failed to check table structure:', error);
-      return;
-    }
-
-    console.log('Table structure:', data);
-    return data;
-  } catch (error) {
-    console.error('Error checking table structure:', error);
-  }
 }
 
 // Add validation for base64 strings with proper error messages
@@ -65,26 +57,29 @@ export async function uploadMessage(message: EncryptedMessage): Promise<void> {
     try {
       validateBase64(message.ciphertext, 'Ciphertext');
       validateBase64(message.nonce, 'Nonce');
-      validateBase64(message.ephemeralPublicKey, 'Public key');
+      validateBase64(message.ephemeralPublicKey, 'Ephemeral public key');
     } catch (e) {
       console.error('Base64 validation failed:', e);
       throw e;
     }
 
-    // Log successful validation
-    console.log('✅ All components validated as base64');
+    // Validate addresses
+    if (!message.senderAddress || !message.recipientAddress) {
+      throw new Error('Sender and recipient addresses are required');
+    }
 
+    // Log successful validation
+    console.log('✅ All components validated');
+
+    const supabase = getSupabaseClient();
     const { error } = await supabase
       .from('messages')
       .insert({
-        to_address: message.to,
-        from_address: message.from,
+        sender_address: message.senderAddress,
+        recipient_address: message.recipientAddress,
         ciphertext: message.ciphertext,
         nonce: message.nonce,
-        ephemeral_public_key: message.ephemeralPublicKey,
-        tip_amount: message.tipAmount || 0,
-        tx_sig: message.txSig,
-        created_at: new Date().toISOString()
+        ephemeral_public_key: message.ephemeralPublicKey
       });
 
     if (error) {
@@ -99,12 +94,13 @@ export async function uploadMessage(message: EncryptedMessage): Promise<void> {
   }
 }
 
-export async function fetchMessagesForDeployer(address: string): Promise<EncryptedMessage[]> {
+export async function fetchMessagesForDeployer(recipientAddress: string): Promise<EncryptedMessage[]> {
   try {
+    const supabase = getSupabaseClient();
     const { data, error } = await supabase
       .from('messages')
       .select('*')
-      .eq('to_address', address)
+      .eq('recipient_address', recipientAddress)
       .order('created_at', { ascending: false });
 
     if (error) {
@@ -113,17 +109,15 @@ export async function fetchMessagesForDeployer(address: string): Promise<Encrypt
     }
 
     // Log fetched messages for verification
-    console.log(`✅ Fetched ${data?.length || 0} messages for ${address}`);
+    console.log(`✅ Fetched ${data?.length || 0} messages for ${recipientAddress}`);
 
     return (data || []).map(msg => ({
       id: msg.id,
-      to: msg.to_address,
-      from: msg.from_address,
+      senderAddress: msg.sender_address,
+      recipientAddress: msg.recipient_address,
       ciphertext: msg.ciphertext,
       nonce: msg.nonce,
       ephemeralPublicKey: msg.ephemeral_public_key,
-      tipAmount: msg.tip_amount,
-      txSig: msg.tx_sig,
       createdAt: msg.created_at
     }));
   } catch (error) {
