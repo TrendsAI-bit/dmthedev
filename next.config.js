@@ -14,13 +14,14 @@ const nextConfig = {
       tls: false,
     };
 
-    // Always use development version of React
-    config.resolve.alias = {
-      ...config.resolve.alias,
-      'react': 'react/profiling',
-      'react-dom': 'react-dom/profiling',
-      'scheduler/tracing': 'scheduler/tracing-profiling',
-    };
+    // Use development version of React only in development mode
+    if (dev) {
+      config.resolve.alias = {
+        ...config.resolve.alias,
+        'react': 'react/dev',
+        'react-dom': 'react-dom/dev',
+      };
+    }
 
     return config;
   },
