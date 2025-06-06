@@ -229,14 +229,46 @@ export default function Home() {
     };
   }, [publicKey?.toBase58()]);
 
-  // Handle message decryption
+  // Safe message display component
+  const MessageDisplay = ({ message }: { message: unknown }) => {
+    const [displayText, setDisplayText] = useState<string>('[Encrypted data]');
+    
+    useEffect(() => {
+      // Ensure we're working with a string
+      const safeMessage = typeof message === 'string' 
+        ? message 
+        : '[❌ Invalid message type]';
+      
+      setDisplayText(safeMessage);
+    }, [message]);
+
+    // Determine message type for styling
+    const messageType = displayText.startsWith('[❌') ? 'error' 
+      : displayText.startsWith('[⚠️') ? 'warning'
+      : 'normal';
+
+    const messageStyle = {
+      error: 'bg-red-50 font-mono text-sm break-all text-red-600',
+      warning: 'bg-yellow-50 font-mono text-sm break-all text-yellow-800',
+      normal: 'bg-gray-100 font-comic break-words'
+    }[messageType];
+
+    return (
+      <div className={`mt-2 p-3 rounded-lg ${messageStyle}`}>
+        {/* Always ensure string rendering */}
+        {typeof displayText === 'string' ? displayText : '[❌ Invalid display data]'}
+      </div>
+    );
+  };
+
+  // Update the handleDecryptMessage function
   const handleDecryptMessage = useCallback(async (messageId: string) => {
     if (!connected || !publicKey || !wallet) {
       alert('Please connect your wallet first');
       return;
     }
 
-    // Don't decrypt if already successfully decrypted
+    // Don't decrypt if already decrypted successfully
     if (decryptedMessages[messageId] && !String(decryptedMessages[messageId]).startsWith('[')) {
       return;
     }
@@ -274,82 +306,20 @@ export default function Home() {
         message.to
       );
 
-      // Ensure we store a string
-      const safeDecrypted = typeof decrypted === 'string' 
-        ? decrypted 
-        : '[❌ Invalid decrypted data]';
-
-      // Update state with the decrypted message
+      // decryptMessage now always returns a string
       setDecryptedMessages(prev => ({
         ...prev,
-        [messageId]: safeDecrypted
+        [messageId]: decrypted
       }));
 
     } catch (error: any) {
       console.error('Decryption error:', error);
-      const errorMessage = String(error?.message || 'Failed to decrypt');
       setDecryptedMessages(prev => ({
         ...prev,
-        [messageId]: `[❌ Error: ${errorMessage}]`
+        [messageId]: `[❌ Error: ${String(error?.message || 'Failed to decrypt')}]`
       }));
     }
   }, [connected, publicKey, wallet, messages]);
-
-  // Message display component
-  const MessageDisplay = ({ message }: { message: unknown }) => {
-    const [displayText, setDisplayText] = useState<string>('[Encrypted data]');
-    
-    useEffect(() => {
-      try {
-        // Ensure we're working with a string
-        const safeMessage = typeof message === 'string' 
-          ? message 
-          : message instanceof Uint8Array
-            ? '[⚠️ Binary data]'
-            : '[⚠️ Unrenderable data]';
-        
-        // Additional safety check
-        if (!safeMessage || typeof safeMessage !== 'string') {
-          setDisplayText('[❌ Invalid message]');
-          return;
-        }
-
-        // Handle special message types
-        if (safeMessage.startsWith('[❌') || safeMessage.startsWith('[⚠️')) {
-          setDisplayText(safeMessage);
-          return;
-        }
-
-        // Set the actual message after mount
-        setDisplayText(safeMessage);
-      } catch (e) {
-        console.error('Message display error:', e);
-        setDisplayText('[❌ Display error]');
-      }
-    }, [message]);
-
-    // Determine message type and style
-    const messageType = displayText.startsWith('[❌') ? 'error' 
-      : displayText.startsWith('[⚠️') ? 'warning'
-      : 'normal';
-
-    const messageStyle = {
-      error: 'bg-red-50 font-mono text-sm break-all text-red-600',
-      warning: 'bg-yellow-50 font-mono text-sm break-all text-yellow-800',
-      normal: 'bg-gray-100 font-comic break-words'
-    }[messageType];
-
-    // Ensure we never render non-string content
-    const finalText = typeof displayText === 'string' 
-      ? displayText 
-      : '[❌ Invalid display data]';
-
-    return (
-      <div className={`mt-2 p-3 rounded-lg ${messageStyle}`}>
-        {finalText}
-      </div>
-    );
-  };
 
   return (
     <main className="min-h-screen">

@@ -33,34 +33,18 @@ function safelyDecodeBytes(bytes: Uint8Array): string {
   }
 
   try {
-    // First attempt strict UTF-8 decoding
-    const decoder = new TextDecoder('utf-8', { fatal: true });
-    const text = decoder.decode(bytes);
-    
-    // Validate decoded text
-    if (!text || !text.trim()) {
-      throw new Error('Empty text after decoding');
-    }
-
-    // Check for non-printable characters
-    if (/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/.test(text)) {
-      throw new Error('Contains control characters');
-    }
-
-    return text;
+    const decoded = new TextDecoder('utf-8', { fatal: true }).decode(bytes);
+    return decoded;
   } catch (e) {
-    // Handle binary data
+    console.warn('⚠️ UTF-8 decode failed:', e);
+    // Convert to base64 for safe preview
     try {
-      // Take first 24 bytes for preview
-      const previewBytes = bytes.slice(0, Math.min(24, bytes.length));
+      const previewBytes = bytes.slice(0, 24);
       const base64 = bytesToBase64(previewBytes);
-      
-      // Format the preview with consistent length
-      const preview = base64.slice(0, 20) + (base64.length > 20 ? '...' : '');
-      return `[⚠️ Binary data (${bytes.length} bytes): ${preview}]`;
+      return `[⚠️ Binary data (${bytes.length} bytes): ${base64}...]`;
     } catch (e2) {
-      console.error('Failed to create binary preview:', e2);
-      return `[❌ Invalid binary data (${bytes.length} bytes)]`;
+      console.error('Failed to create base64 preview:', e2);
+      return '[❌ Invalid binary data]';
     }
   }
 }
@@ -69,15 +53,7 @@ function safeDecryptToString(decryptedBytes: Uint8Array | null): string {
   if (!decryptedBytes) {
     return '[❌ Failed to decrypt]';
   }
-  
-  try {
-    const result = safelyDecodeBytes(decryptedBytes);
-    // Ensure we always return a string
-    return typeof result === 'string' ? result : String(result);
-  } catch (e) {
-    console.error('Decryption string conversion failed:', e);
-    return '[❌ Data conversion error]';
-  }
+  return safelyDecodeBytes(decryptedBytes);
 }
 
 function validateEncryptedData(data: EncryptedData): void {
@@ -188,7 +164,7 @@ export async function decryptMessage(
     const decrypted = box.after(ciphertext, nonce, sharedKey);
     console.log('Decryption result:', decrypted ? 'success' : 'failed');
 
-    // Safely decode the decrypted bytes
+    // Always return a string
     return safeDecryptToString(decrypted);
   } catch (error) {
     console.error('Decryption failed:', error);
