@@ -337,6 +337,23 @@ export default function Home() {
       return; // Already processing another message
     }
 
+    console.log('=== DECRYPTION DEBUG START ===');
+    console.log('MessageID:', messageId);
+    console.log('Wallet:', publicKey.toBase58());
+    
+    const message = messages.find(m => m.id === messageId);
+    if (message) {
+      console.log('Message Data:', {
+        from: message.from,
+        to: message.to,
+        createdAt: message.createdAt,
+        ciphertext: message.ciphertext,
+        nonce: message.nonce,
+        ephemeralPublicKey: message.ephemeralPublicKey
+      });
+    }
+    console.log('=== DECRYPTION DEBUG END ===');
+
     setDecryptionQueue(prev => [...prev, messageId]);
   };
 

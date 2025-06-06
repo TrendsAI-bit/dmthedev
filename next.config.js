@@ -5,7 +5,7 @@ const nextConfig = {
     NEXT_PUBLIC_HELIUS_RPC: process.env.NEXT_PUBLIC_HELIUS_RPC || 'https://mainnet.helius-rpc.com/?api-key=7c8a804a-bb84-4963-b03b-421a5d39c887',
   },
   swcMinify: true,
-  webpack: (config) => {
+  webpack: (config, { dev, isServer }) => {
     config.externals.push('pino-pretty', 'lokijs', 'encoding');
     config.resolve.fallback = {
       ...config.resolve.fallback,
@@ -13,6 +13,13 @@ const nextConfig = {
       net: false,
       tls: false,
     };
+    if (dev) {
+      config.resolve.alias = {
+        ...config.resolve.alias,
+        'react': 'react/dev',
+        'react-dom': 'react-dom/dev',
+      };
+    }
     return config;
   },
 }

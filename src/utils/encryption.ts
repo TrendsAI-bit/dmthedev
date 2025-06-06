@@ -40,7 +40,22 @@ function concatenateUint8Arrays(...arrays: Uint8Array[]): Uint8Array {
   return result;
 }
 
+function findValidUTF8Sequence(bytes: Uint8Array): Uint8Array | null {
+  // Try different offsets and lengths to find a valid UTF-8 sequence
+  for (let start = 0; start < bytes.length; start++) {
+    for (let end = bytes.length; end > start; end--) {
+      const slice = bytes.slice(start, end);
+      if (isValidUTF8(slice) && slice.length > 0) {
+        return slice;
+      }
+    }
+  }
+  return null;
+}
+
 function tryDecodeMessage(bytes: Uint8Array): string {
+  console.log('Attempting to decode bytes:', bytesToHex(bytes));
+
   // Try different decoding strategies
   const attempts = [
     // Attempt 1: Try decoding the entire message
@@ -50,7 +65,7 @@ function tryDecodeMessage(bytes: Uint8Array): string {
       }
       throw new Error('Not valid UTF-8');
     },
-    // Attempt 2: Try skipping the first byte (version byte)
+    // Attempt 2: Skip the first byte (version byte)
     () => {
       const messageBytes = bytes.slice(1);
       if (isValidUTF8(messageBytes)) {
@@ -58,36 +73,49 @@ function tryDecodeMessage(bytes: Uint8Array): string {
       }
       throw new Error('Not valid UTF-8 after skipping version byte');
     },
-    // Attempt 3: Try trimming null bytes from the end
+    // Attempt 3: Try finding a valid UTF-8 sequence
     () => {
-      let end = bytes.length;
-      while (end > 0 && bytes[end - 1] === 0) {
-        end--;
+      const validSequence = findValidUTF8Sequence(bytes);
+      if (validSequence) {
+        return new TextDecoder('utf-8', { fatal: true }).decode(validSequence);
       }
-      const trimmed = bytes.slice(0, end);
-      if (isValidUTF8(trimmed)) {
-        return new TextDecoder('utf-8', { fatal: true }).decode(trimmed);
-      }
-      throw new Error('Not valid UTF-8 after trimming nulls');
+      throw new Error('No valid UTF-8 sequence found');
     },
-    // Attempt 4: Try trimming nulls and skipping first byte
+    // Attempt 4: Try base64 decoding
     () => {
-      let end = bytes.length;
-      while (end > 1 && bytes[end - 1] === 0) {
-        end--;
+      try {
+        const base64 = bytesToHex(bytes)
+          .match(/.{2}/g)!
+          .map(hex => String.fromCharCode(parseInt(hex, 16)))
+          .join('');
+        const decoded = atob(base64);
+        if (decoded && decoded.length > 0) {
+          return decoded;
+        }
+      } catch {}
+      throw new Error('Not valid base64');
+    },
+    // Attempt 5: Try ASCII decoding
+    () => {
+      const ascii = Array.from(bytes)
+        .map(b => (b >= 32 && b <= 126) ? String.fromCharCode(b) : '')
+        .join('')
+        .trim();
+      if (ascii.length > 0) {
+        return ascii;
       }
-      const trimmed = bytes.slice(1, end);
-      if (isValidUTF8(trimmed)) {
-        return new TextDecoder('utf-8', { fatal: true }).decode(trimmed);
-      }
-      throw new Error('Not valid UTF-8 after trimming nulls and skipping version');
+      throw new Error('No valid ASCII characters found');
     }
   ];
 
   let lastError = null;
   for (const attempt of attempts) {
     try {
-      return attempt();
+      const result = attempt();
+      if (result && result.length > 0) {
+        console.log('Successfully decoded message:', result);
+        return result;
+      }
     } catch (error) {
       lastError = error;
       console.log('Decode attempt failed:', error);
