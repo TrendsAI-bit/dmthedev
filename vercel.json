@@ -6,9 +6,9 @@
   "framework": "nextjs",
   "regions": ["sin1"],
   "env": {
-    "NEXT_PUBLIC_HELIUS_RPC": "env var from vercel dashboard",
-    "NEXT_PUBLIC_SUPABASE_URL": "https://your-project-url.supabase.co",
-    "NEXT_PUBLIC_SUPABASE_ANON_KEY": "your-anon-key"
+    "NEXT_PUBLIC_SUPABASE_URL": "@next_public_supabase_url",
+    "NEXT_PUBLIC_SUPABASE_ANON_KEY": "@next_public_supabase_anon_key",
+    "NEXT_PUBLIC_HELIUS_RPC": "@next_public_helius_rpc"
   },
   "routes": [
     {

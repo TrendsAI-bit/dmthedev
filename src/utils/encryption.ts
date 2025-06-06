@@ -130,143 +130,158 @@ function encodeMessageWithVersion(message: string): Uint8Array {
   return new TextEncoder().encode(versionedMessage);
 }
 
-// Update the encryptMessage function to use versioning
-export function encryptMessage(message: string, recipientPublicKeyB58: string): EncryptedData {
+// Add utility functions for consistent data handling
+function isBase64(str: string): boolean {
+  if (!str) return false;
   try {
-    console.log('Encrypting message...');
+    return btoa(atob(str)) === str;
+  } catch {
+    return false;
+  }
+}
 
-    // Convert recipient's public key from Base58
-    const recipientPublicKey = bs58.decode(recipientPublicKeyB58);
-    if (recipientPublicKey.length !== box.publicKeyLength) {
-      throw new Error('Invalid recipient public key length');
-    }
+function toBase64(data: Uint8Array): string {
+  return btoa(String.fromCharCode.apply(null, Array.from(data)));
+}
 
-    // Generate ephemeral keypair
-    const ephemeralKeypair = box.keyPair();
+function fromBase64(base64: string): Uint8Array {
+  const binary = atob(base64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) {
+    bytes[i] = binary.charCodeAt(i);
+  }
+  return bytes;
+}
 
-    // Generate nonce
-    const nonce = randomBytes(box.nonceLength);
+export async function encryptMessage(message: string, recipientPublicKey: string): Promise<EncryptedData> {
+  try {
+    console.log("Starting encryption process");
+    
+    // Validate input
+    if (!message) throw new Error("Message cannot be empty");
+    if (!recipientPublicKey) throw new Error("Recipient public key is required");
 
-    // Generate shared key
-    const sharedKey = box.before(recipientPublicKey, ephemeralKeypair.secretKey);
+    // Convert message to bytes if not already
+    const messageBytes = typeof message === 'string' 
+      ? new TextEncoder().encode(message)
+      : message;
 
-    // Encode message with version
-    const messageBytes = encodeMessageWithVersion(message);
-    console.log('Message length:', messageBytes.length);
-
-    // Encrypt the message
-    const encrypted = box.after(messageBytes, nonce, sharedKey);
-    if (!encrypted) {
-      throw new Error('Encryption failed');
-    }
-    console.log('Encrypted length:', encrypted.length);
-
-    // Encode all binary data as base64
+    // Perform encryption
+    const encrypted = await performEncryption(messageBytes, recipientPublicKey);
+    
+    // Ensure all components are properly base64 encoded
     const result = {
-      ciphertext: encodeBase64(encrypted),
-      nonce: encodeBase64(nonce),
-      ephemeralPublicKey: encodeBase64(ephemeralKeypair.publicKey)
+      ciphertext: toBase64(encrypted.ciphertext),
+      nonce: toBase64(encrypted.nonce),
+      ephemeralPublicKey: toBase64(encrypted.ephemeralPublicKey)
     };
 
-    validateEncryptedData(result);
+    // Validate result
+    if (!isBase64(result.ciphertext) || !isBase64(result.nonce) || !isBase64(result.ephemeralPublicKey)) {
+      throw new Error("Invalid base64 encoding in encryption result");
+    }
+
+    console.log("✅ Encryption completed successfully");
     return result;
   } catch (error) {
-    console.error('Encryption error:', error);
+    console.error("Encryption failed:", error);
     throw error;
   }
 }
 
-function safeDecodeMessage(decrypted: Uint8Array): string {
-  if (!decrypted || decrypted.length === 0) {
-    return '[Empty message]';
-  }
-
-  // First check if it's binary data
-  let isBinary = false;
-  for (let i = 0; i < Math.min(decrypted.length, 100); i++) {
-    if (decrypted[i] < 9 || (decrypted[i] > 13 && decrypted[i] < 32) || decrypted[i] > 126) {
-      isBinary = true;
-      break;
-    }
-  }
-
-  // If it's binary, return base64 immediately
-  if (isBinary) {
-    const base64 = encodeBase64(decrypted);
-    return `[Binary data] ${decrypted.length} bytes\nPreview: ${base64.slice(0, 32)}...`;
-  }
-
+export async function decryptMessage(encryptedData: EncryptedData, wallet: any, recipientAddress: string): Promise<string> {
   try {
-    // Attempt UTF-8 decoding
-    const text = new TextDecoder('utf-8', { fatal: true }).decode(decrypted);
+    console.log("Starting decryption process");
     
-    // Check if it's JSON
-    try {
-      const json = JSON.parse(text);
-      if (typeof json === 'object') {
-        // Format JSON nicely
-        return JSON.stringify(json, null, 2);
-      }
-    } catch {
-      // Not JSON, just return the text
+    // Validate input
+    if (!encryptedData?.ciphertext || !encryptedData?.nonce || !encryptedData?.ephemeralPublicKey) {
+      throw new Error("Missing required encryption data");
     }
     
-    return text;
-  } catch (e) {
-    // If UTF-8 decoding fails, return a safe string
-    const base64 = encodeBase64(decrypted);
-    return `[Encoded data] ${decrypted.length} bytes\nBase64: ${base64.slice(0, 32)}...`;
+    if (!isBase64(encryptedData.ciphertext) || !isBase64(encryptedData.nonce) || !isBase64(encryptedData.ephemeralPublicKey)) {
+      throw new Error("Invalid base64 encoding in encrypted data");
+    }
+
+    // Convert base64 to bytes
+    const data = {
+      ciphertext: fromBase64(encryptedData.ciphertext),
+      nonce: fromBase64(encryptedData.nonce),
+      ephemeralPublicKey: fromBase64(encryptedData.ephemeralPublicKey)
+    };
+
+    // Perform decryption
+    const decryptedBytes = await performDecryption(data, wallet, recipientAddress);
+    
+    // Try decoding as UTF-8
+    try {
+      const decoded = new TextDecoder("utf-8", { fatal: true }).decode(decryptedBytes);
+      console.log("✅ Successfully decoded as UTF-8");
+      return decoded;
+    } catch {
+      // If UTF-8 decoding fails, return as base64
+      console.log("⚠️ UTF-8 decoding failed, returning as base64");
+      return toBase64(decryptedBytes);
+    }
+  } catch (error) {
+    console.error("Decryption failed:", error);
+    throw error;
   }
 }
 
-export async function decryptMessage(
-  encryptedData: EncryptedData,
-  wallet: any,
-  recipientAddress: string
-): Promise<string> {
-  try {
-    console.log('Starting decryption...');
-
-    validateEncryptedData(encryptedData);
-    console.log('✅ Validated encrypted data format');
-
-    // Get signature from wallet
-    const message = new TextEncoder().encode(
-      `Sign to decrypt messages on DM the DEV\nWallet: ${recipientAddress}`
-    );
-    
-    const signature = await wallet.signMessage(message);
-    const signatureBytes = signature instanceof Uint8Array ? signature : bs58.decode(signature);
-    console.log('✅ Got wallet signature');
-    
-    // Derive secret key
-    const hash = sha512(signatureBytes);
-    const secretKey = new Uint8Array(hash.slice(0, box.secretKeyLength));
-    console.log('✅ Derived secret key');
-
-    // Decode base64 components
-    const ciphertext = decodeBase64(encryptedData.ciphertext);
-    const nonce = decodeBase64(encryptedData.nonce);
-    const ephemeralPublicKey = decodeBase64(encryptedData.ephemeralPublicKey);
-    console.log('✅ Decoded base64 components');
-
-    // Generate shared key
-    const sharedKey = box.before(ephemeralPublicKey, secretKey);
-    console.log('✅ Generated shared key');
-
-    // Decrypt
-    const decrypted = box.after(ciphertext, nonce, sharedKey);
-    if (!decrypted) {
-      return '[❌ Decryption failed]';
-    }
-    console.log('✅ Decryption successful');
-
-    // Convert to safe string immediately
-    const result = safeDecodeMessage(decrypted);
-    console.log('Message type:', result.startsWith('[Binary data]') ? 'binary' : 'text');
-    return result;
-  } catch (error) {
-    console.error('Decryption failed:', error);
-    return `[❌ Error: ${error instanceof Error ? error.message : 'Unknown error'}]`;
+async function performEncryption(messageBytes: Uint8Array, recipientPublicKeyB58: string) {
+  // Convert recipient's public key from Base58
+  const recipientPublicKey = bs58.decode(recipientPublicKeyB58);
+  if (recipientPublicKey.length !== box.publicKeyLength) {
+    throw new Error('Invalid recipient public key length');
   }
+
+  // Generate ephemeral keypair
+  const ephemeralKeypair = box.keyPair();
+
+  // Generate nonce
+  const nonce = randomBytes(box.nonceLength);
+  
+  // Generate shared key
+  const sharedKey = box.before(recipientPublicKey, ephemeralKeypair.secretKey);
+
+  // Encrypt the message
+  const ciphertext = box.after(messageBytes, nonce, sharedKey);
+  if (!ciphertext) {
+    throw new Error('Encryption failed');
+  }
+
+  return {
+    ciphertext,
+    nonce,
+    ephemeralPublicKey: ephemeralKeypair.publicKey
+  };
+}
+
+async function performDecryption(data: {
+  ciphertext: Uint8Array,
+  nonce: Uint8Array,
+  ephemeralPublicKey: Uint8Array
+}, wallet: any, recipientAddress: string): Promise<Uint8Array> {
+  // Get signature from wallet
+  const message = new TextEncoder().encode(
+    `Sign to decrypt messages on DM the DEV\nWallet: ${recipientAddress}`
+  );
+  
+  const signature = await wallet.signMessage(message);
+  const signatureBytes = signature instanceof Uint8Array ? signature : bs58.decode(signature);
+  
+  // Derive secret key
+  const hash = sha512(signatureBytes);
+  const secretKey = new Uint8Array(hash.slice(0, box.secretKeyLength));
+  
+  // Generate shared key
+  const sharedKey = box.before(data.ephemeralPublicKey, secretKey);
+  
+  // Decrypt
+  const decrypted = box.after(data.ciphertext, data.nonce, sharedKey);
+  if (!decrypted) {
+    throw new Error('Decryption failed');
+  }
+  
+  return decrypted;
 } 

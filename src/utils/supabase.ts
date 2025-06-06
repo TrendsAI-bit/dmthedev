@@ -17,25 +17,58 @@ export interface EncryptedMessage {
   createdAt?: string;
 }
 
+// Add function to check table structure
+async function checkTableStructure() {
+  try {
+    const { data, error } = await supabase
+      .from('information_schema.columns')
+      .select('column_name, data_type')
+      .eq('table_name', 'messages');
+
+    if (error) {
+      console.error('Failed to check table structure:', error);
+      return;
+    }
+
+    console.log('Table structure:', data);
+    return data;
+  } catch (error) {
+    console.error('Error checking table structure:', error);
+  }
+}
+
+// Add validation for base64 strings with proper error messages
+function validateBase64(str: string, fieldName: string): boolean {
+  if (!str) {
+    throw new Error(`${fieldName} is empty`);
+  }
+  
+  // Check if it's valid base64
+  const base64Regex = /^[A-Za-z0-9+/]*={0,2}$/;
+  if (!base64Regex.test(str)) {
+    throw new Error(`${fieldName} contains invalid base64 characters`);
+  }
+  
+  // Check if length is valid (must be multiple of 4)
+  if (str.length % 4 !== 0) {
+    throw new Error(`${fieldName} has invalid length for base64`);
+  }
+  
+  return true;
+}
+
 export async function uploadMessage(message: EncryptedMessage): Promise<void> {
   try {
-    // Validate base64 encoding
-    const isBase64 = (str: string) => /^[A-Za-z0-9+/]*={0,2}$/.test(str);
-    
-    // Log message components for verification
+    // Enhanced validation with better error messages
     console.log('Validating message components:');
-    console.log('Ciphertext length:', message.ciphertext.length);
-    console.log('Nonce length:', message.nonce.length);
-    console.log('Public key length:', message.ephemeralPublicKey.length);
     
-    if (!isBase64(message.ciphertext)) {
-      throw new Error('Invalid base64 encoding in ciphertext');
-    }
-    if (!isBase64(message.nonce)) {
-      throw new Error('Invalid base64 encoding in nonce');
-    }
-    if (!isBase64(message.ephemeralPublicKey)) {
-      throw new Error('Invalid base64 encoding in ephemeral public key');
+    try {
+      validateBase64(message.ciphertext, 'Ciphertext');
+      validateBase64(message.nonce, 'Nonce');
+      validateBase64(message.ephemeralPublicKey, 'Public key');
+    } catch (e) {
+      console.error('Base64 validation failed:', e);
+      throw e;
     }
 
     // Log successful validation

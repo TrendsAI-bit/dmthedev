@@ -47,55 +47,63 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql IMMUTABLE;
 
--- Create messages table with proper constraints
-CREATE TABLE IF NOT EXISTS messages (
-    id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
-    to_address TEXT NOT NULL CHECK (length(to_address) > 0),
-    from_address TEXT NOT NULL CHECK (length(from_address) > 0),
-    ciphertext TEXT NOT NULL CHECK (
-        length(ciphertext) > 0 AND 
-        is_base64(ciphertext)
-    ),
-    nonce TEXT NOT NULL CHECK (
-        is_base64(nonce) AND 
-        validate_nonce(nonce)
-    ),
-    ephemeral_public_key TEXT NOT NULL CHECK (
-        is_base64(ephemeral_public_key) AND 
-        validate_public_key(ephemeral_public_key)
-    ),
-    tip_amount NUMERIC DEFAULT 0 CHECK (tip_amount >= 0),
+-- Create messages table with proper data types
+CREATE TABLE messages (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    to_address TEXT NOT NULL,
+    from_address TEXT NOT NULL,
+    ciphertext TEXT NOT NULL CHECK (length(ciphertext) > 0),
+    nonce TEXT NOT NULL CHECK (length(nonce) > 0),
+    ephemeral_public_key TEXT NOT NULL CHECK (length(ephemeral_public_key) > 0),
+    tip_amount DECIMAL(20, 9) DEFAULT 0,
     tx_sig TEXT,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    
+    -- Add constraints to ensure base64 format
+    CONSTRAINT valid_ciphertext CHECK (ciphertext ~ '^[A-Za-z0-9+/]*={0,2}$'),
+    CONSTRAINT valid_nonce CHECK (nonce ~ '^[A-Za-z0-9+/]*={0,2}$'),
+    CONSTRAINT valid_ephemeral_public_key CHECK (ephemeral_public_key ~ '^[A-Za-z0-9+/]*={0,2}$'),
+    
+    -- Add indexes for better query performance
+    CONSTRAINT valid_addresses CHECK (
+        to_address ~ '^[1-9A-HJ-NP-Za-km-z]{32,44}$' AND
+        from_address ~ '^[1-9A-HJ-NP-Za-km-z]{32,44}$'
+    )
 );
 
--- Create indexes for better query performance
-CREATE INDEX IF NOT EXISTS idx_messages_to_address ON messages(to_address);
-CREATE INDEX IF NOT EXISTS idx_messages_from_address ON messages(from_address);
-CREATE INDEX IF NOT EXISTS idx_messages_created_at ON messages(created_at DESC);
+-- Create indexes for frequently queried columns
+CREATE INDEX idx_messages_to_address ON messages(to_address);
+CREATE INDEX idx_messages_created_at ON messages(created_at);
 
--- Set up row level security
+-- Create RLS policies
 ALTER TABLE messages ENABLE ROW LEVEL SECURITY;
 
--- Create policy to allow anyone to insert with validation
-CREATE POLICY "Allow anyone to insert valid messages"
+-- Allow anyone to insert messages
+CREATE POLICY "Anyone can insert messages"
 ON messages FOR INSERT
 TO public
-WITH CHECK (
-    length(to_address) > 0 AND
-    length(from_address) > 0 AND
-    length(ciphertext) > 0 AND
-    is_base64(ciphertext) AND
-    validate_nonce(nonce) AND
-    validate_public_key(ephemeral_public_key) AND
-    tip_amount >= 0
-);
+WITH CHECK (true);
 
--- Create policy to allow anyone to read messages
-CREATE POLICY "Allow anyone to read messages"
+-- Allow anyone to read messages
+CREATE POLICY "Anyone can read messages"
 ON messages FOR SELECT
 TO public
 USING (true);
+
+-- Add comment to table
+COMMENT ON TABLE messages IS 'Stores encrypted messages for DM the DEV application';
+
+-- Verify table structure
+SELECT 
+    column_name,
+    data_type,
+    character_maximum_length,
+    column_default,
+    is_nullable
+FROM 
+    information_schema.columns
+WHERE 
+    table_name = 'messages';
 
 -- Add trigger to validate data before insert
 CREATE OR REPLACE FUNCTION validate_message_data()

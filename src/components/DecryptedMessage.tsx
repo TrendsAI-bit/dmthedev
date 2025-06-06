@@ -9,11 +9,63 @@ interface Props {
   recipientAddress: string;
 }
 
+// Custom hook to handle mounting state
+const useHasMounted = () => {
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+  return mounted;
+};
+
+// Safe text decoder that handles binary data
+const safeDecodeMessage = (result: string): string => {
+  if (!result) return "[Empty message]";
+  
+  // Check if already formatted
+  if (result.startsWith('[') || result.startsWith('{')) {
+    try {
+      // Try parsing as JSON to validate
+      JSON.parse(result);
+      return result;
+    } catch {
+      // Not valid JSON, continue with other checks
+    }
+  }
+
+  try {
+    // Try parsing as base64 first
+    const decoded = atob(result);
+    try {
+      // Try parsing decoded result as JSON
+      const parsed = JSON.parse(decoded);
+      return JSON.stringify(parsed, null, 2);
+    } catch {
+      // Not JSON, return as text if it looks like text
+      if (/^[\x20-\x7E]*$/.test(decoded)) {
+        return decoded;
+      }
+      return `[Binary data - ${result.length} bytes]`;
+    }
+  } catch {
+    // Not base64, try direct UTF-8 decoding
+    try {
+      const bytes = new TextEncoder().encode(result);
+      const decoded = new TextDecoder("utf-8", { fatal: true }).decode(bytes);
+      return decoded;
+    } catch {
+      // If all decoding fails, return as binary
+      return `[Binary data - ${result.length} bytes]`;
+    }
+  }
+};
+
 export default function DecryptedMessage({ encryptedData, wallet, recipientAddress }: Props) {
   const [output, setOutput] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const hasMounted = useHasMounted();
 
   useEffect(() => {
+    if (!hasMounted) return;
+
     console.log("✅ Component mounted, starting client-side decryption");
     
     async function handleDecrypt() {
@@ -26,23 +78,17 @@ export default function DecryptedMessage({ encryptedData, wallet, recipientAddre
         console.log("🔄 Starting decryption process");
         const result = await decryptMessage(encryptedData, wallet, recipientAddress);
         
-        // Check if the result is already a formatted message
-        if (result.startsWith('[')) {
-          console.log("ℹ️ Received pre-formatted message");
-          setOutput(result);
+        console.log("Decrypted Result Type:", typeof result);
+        if (typeof result !== 'string') {
+          console.warn("Unexpected result type:", result);
+          setError("[Invalid data] Decryption returned non-string data");
           return;
         }
 
-        try {
-          // Try parsing as JSON first
-          const parsed = JSON.parse(result);
-          console.log("✅ Successfully parsed JSON message");
-          setOutput(JSON.stringify(parsed, null, 2));
-        } catch {
-          // Not JSON, use as plain text
-          console.log("ℹ️ Using plain text message");
-          setOutput(result);
-        }
+        const safeResult = safeDecodeMessage(result);
+        console.log("✅ Message safely decoded");
+        setOutput(safeResult);
+        
       } catch (err) {
         console.warn("[Decryption Warning]", err);
         setError(`[❌ Decryption failed] ${err instanceof Error ? err.message : 'Unknown error'}`);
@@ -50,11 +96,10 @@ export default function DecryptedMessage({ encryptedData, wallet, recipientAddre
     }
 
     handleDecrypt();
-  }, [encryptedData, wallet, recipientAddress]);
+  }, [encryptedData, wallet, recipientAddress, hasMounted]);
 
-  // Early return during SSR
-  if (typeof window === 'undefined') {
-    console.log("⚠️ Attempted server-side render, preventing");
+  // Early return during SSR or before mount
+  if (!hasMounted) {
     return null;
   }
 

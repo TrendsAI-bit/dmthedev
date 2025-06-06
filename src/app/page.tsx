@@ -163,7 +163,7 @@ export default function Home() {
       // Step 2: Encrypt message
       let encrypted;
       try {
-        encrypted = encryptMessage(message, deployerInfo.address);
+        encrypted = await encryptMessage(message, deployerInfo.address);
       } catch (error) {
         console.error('Encryption failed:', error);
         alert('Failed to encrypt message. Please try again.');
