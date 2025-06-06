@@ -13,13 +13,15 @@ const nextConfig = {
       net: false,
       tls: false,
     };
-    if (dev) {
-      config.resolve.alias = {
-        ...config.resolve.alias,
-        'react': 'react/dev',
-        'react-dom': 'react-dom/dev',
-      };
-    }
+
+    // Always use development version of React
+    config.resolve.alias = {
+      ...config.resolve.alias,
+      'react': 'react/profiling',
+      'react-dom': 'react-dom/profiling',
+      'scheduler/tracing': 'scheduler/tracing-profiling',
+    };
+
     return config;
   },
 }
