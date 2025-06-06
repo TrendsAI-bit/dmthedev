@@ -8,6 +8,7 @@ import { Connection, PublicKey, Transaction, SystemProgram, LAMPORTS_PER_SOL } f
 import { encryptMessage, decryptMessage } from '@/utils/encryption';
 import { uploadMessage, fetchMessagesForDeployer, EncryptedMessage } from '@/utils/supabase';
 import dynamic from 'next/dynamic';
+import ClientOnly from '@/components/ClientOnly';
 
 const HELIUS_RPC = process.env.NEXT_PUBLIC_HELIUS_RPC || 'https://mainnet.helius-rpc.com/?api-key=7c8a804a-bb84-4963-b03b-421a5d39c887';
 
@@ -379,54 +380,56 @@ export default function Home() {
 
         {/* Send Message Section */}
         {activeTab === 'send' && (
-          <section className="section">
-            <h2 className="section-title">[💌] Send Message to Developer</h2>
-            <div className="space-y-4">
-              <textarea
-                className="w-full p-4 border-3 border-black rounded-xl font-comic resize-y min-h-[120px] bg-white"
-                placeholder="Write your message to the developer..."
-                value={message}
-                onChange={(e) => setMessage(e.target.value)}
-                disabled={!connected || isSending}
-              />
-              
-              <div className="flex gap-4">
-                <input
-                  type="number"
-                  className="flex-1 p-4 border-3 border-black rounded-xl font-comic bg-white"
-                  placeholder="Tip amount in SOL (optional)"
-                  value={tipAmount}
-                  onChange={(e) => setTipAmount(e.target.value)}
+          <ClientOnly>
+            <section className="section">
+              <h2 className="section-title">[💌] Send Message to Developer</h2>
+              <div className="space-y-4">
+                <textarea
+                  className="w-full p-4 border-3 border-black rounded-xl font-comic resize-y min-h-[120px] bg-white"
+                  placeholder="Write your message to the developer..."
+                  value={message}
+                  onChange={(e) => setMessage(e.target.value)}
                   disabled={!connected || isSending}
-                  min="0"
-                  step="0.01"
                 />
-              </div>
-
-              <div className="flex gap-4">
-                <button
-                  onClick={() => sendMessage(false)}
-                  disabled={!connected || !message || isSending}
-                  className="flex-1 bg-white border-3 border-black py-4 px-6 font-bold rounded-xl rotate-[0.5deg] hover:animate-bounce-light disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {isSending ? '⏳ Sending...' : '💬 Send Message Only'}
-                </button>
-                <button
-                  onClick={() => sendMessage(true)}
-                  disabled={!connected || !message || isSending || !tipAmount}
-                  className="flex-1 bg-white border-3 border-black py-4 px-6 font-bold rounded-xl -rotate-[0.5deg] hover:animate-bounce-light disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {isSending ? '⏳ Sending...' : `💸 Send Message + ${tipAmount ? `${tipAmount} SOL` : 'Tip'}`}
-                </button>
-              </div>
-
-              {!connected && (
-                <div className="text-center text-red-500">
-                  Please connect your wallet to send messages!
+                
+                <div className="flex gap-4">
+                  <input
+                    type="number"
+                    className="flex-1 p-4 border-3 border-black rounded-xl font-comic bg-white"
+                    placeholder="Tip amount in SOL (optional)"
+                    value={tipAmount}
+                    onChange={(e) => setTipAmount(e.target.value)}
+                    disabled={!connected || isSending}
+                    min="0"
+                    step="0.01"
+                  />
                 </div>
-              )}
-            </div>
-          </section>
+
+                <div className="flex gap-4">
+                  <button
+                    onClick={() => sendMessage(false)}
+                    disabled={!connected || !message || isSending}
+                    className="flex-1 bg-white border-3 border-black py-4 px-6 font-bold rounded-xl rotate-[0.5deg] hover:animate-bounce-light disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {isSending ? '⏳ Sending...' : '💬 Send Message Only'}
+                  </button>
+                  <button
+                    onClick={() => sendMessage(true)}
+                    disabled={!connected || !message || isSending || !tipAmount}
+                    className="flex-1 bg-white border-3 border-black py-4 px-6 font-bold rounded-xl -rotate-[0.5deg] hover:animate-bounce-light disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {isSending ? '⏳ Sending...' : `💸 Send Message + ${tipAmount ? `${tipAmount} SOL` : 'Tip'}`}
+                  </button>
+                </div>
+
+                {!connected && (
+                  <div className="text-center text-red-500">
+                    Please connect your wallet to send messages!
+                  </div>
+                )}
+              </div>
+            </section>
+          </ClientOnly>
         )}
 
         {/* Decrypt Message Section */}
@@ -462,74 +465,76 @@ export default function Home() {
         )}
 
         {/* Messages Section */}
-        {connected && publicKey && (
-          <section className="section mt-8">
-            <h2 className="section-title">[📬] Your Messages</h2>
-            <div className="space-y-4">
-              {messages.length === 0 ? (
-                <div className="text-center text-gray-500 py-8">
-                  No messages found. Share your token with others to receive messages!
-                </div>
-              ) : (
-                messages.map((msg) => (
-                  <div key={msg.id} className="border-3 border-black rounded-xl p-4 bg-white">
-                    <div className="flex justify-between items-start mb-2">
-                      <div>
-                        <div className="font-bold">From: {msg.from.slice(0, 4)}...{msg.from.slice(-4)}</div>
-                        <div className="text-sm text-gray-600">
-                          {msg.createdAt ? new Date(msg.createdAt).toUTCString() : 'Unknown date'}
+        <ClientOnly>
+          {connected && publicKey && (
+            <section className="section mt-8">
+              <h2 className="section-title">[📬] Your Messages</h2>
+              <div className="space-y-4">
+                {messages.length === 0 ? (
+                  <div className="text-center text-gray-500 py-8">
+                    No messages found. Share your token with others to receive messages!
+                  </div>
+                ) : (
+                  messages.map((msg) => (
+                    <div key={msg.id} className="border-3 border-black rounded-xl p-4 bg-white">
+                      <div className="flex justify-between items-start mb-2">
+                        <div>
+                          <div className="font-bold">From: {msg.from.slice(0, 4)}...{msg.from.slice(-4)}</div>
+                          <div className="text-sm text-gray-600">
+                            {msg.createdAt ? new Date(msg.createdAt).toUTCString() : 'Unknown date'}
+                          </div>
                         </div>
+                        {(msg.tipAmount || 0) > 0 && (
+                          <div className="bg-yellow-100 px-3 py-1 rounded-full text-sm">
+                            +{msg.tipAmount} SOL
+                          </div>
+                        )}
                       </div>
-                      {(msg.tipAmount || 0) > 0 && (
-                        <div className="bg-yellow-100 px-3 py-1 rounded-full text-sm">
-                          +{msg.tipAmount} SOL
+                      
+                      {decryptedMessages[msg.id!] === 'DECRYPT_READY' ? (
+                        <DecryptedMessage
+                          encryptedData={{
+                            ciphertext: msg.ciphertext,
+                            nonce: msg.nonce,
+                            ephemeralPublicKey: msg.ephemeralPublicKey
+                          }}
+                          wallet={wallet?.adapter}
+                          recipientAddress={msg.to}
+                        />
+                      ) : decryptedMessages[msg.id!] ? (
+                        <div className={`mt-2 p-3 rounded-lg text-sm break-all ${
+                          decryptedMessages[msg.id!].startsWith('[❌') ? 'bg-red-50 text-red-600' :
+                          'bg-blue-50 text-blue-800'
+                        }`}>
+                          {decryptedMessages[msg.id!]}
                         </div>
+                      ) : (
+                        <button
+                          onClick={() => handleDecryptMessage(msg.id!)}
+                          className="w-full mt-2 py-2 px-4 border-2 border-black rounded-lg bg-white hover:bg-gray-50 transition-colors"
+                          disabled={!connected}
+                        >
+                          {connected ? '🔑 Decrypt Message' : '🔒 Connect Wallet to Decrypt'}
+                        </button>
+                      )}
+                      
+                      {msg.txSig && (
+                        <a
+                          href={`https://solscan.io/tx/${msg.txSig}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-xs text-blue-600 hover:underline mt-2 block"
+                        >
+                          View transaction ↗
+                        </a>
                       )}
                     </div>
-                    
-                    {decryptedMessages[msg.id!] === 'DECRYPT_READY' ? (
-                      <DecryptedMessage
-                        encryptedData={{
-                          ciphertext: msg.ciphertext,
-                          nonce: msg.nonce,
-                          ephemeralPublicKey: msg.ephemeralPublicKey
-                        }}
-                        wallet={wallet?.adapter}
-                        recipientAddress={msg.to}
-                      />
-                    ) : decryptedMessages[msg.id!] ? (
-                      <div className={`mt-2 p-3 rounded-lg text-sm break-all ${
-                        decryptedMessages[msg.id!].startsWith('[❌') ? 'bg-red-50 text-red-600' :
-                        'bg-blue-50 text-blue-800'
-                      }`}>
-                        {decryptedMessages[msg.id!]}
-                      </div>
-                    ) : (
-                      <button
-                        onClick={() => handleDecryptMessage(msg.id!)}
-                        className="w-full mt-2 py-2 px-4 border-2 border-black rounded-lg bg-white hover:bg-gray-50 transition-colors"
-                        disabled={!connected}
-                      >
-                        {connected ? '🔑 Decrypt Message' : '🔒 Connect Wallet to Decrypt'}
-                      </button>
-                    )}
-                    
-                    {msg.txSig && (
-                      <a
-                        href={`https://solscan.io/tx/${msg.txSig}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-xs text-blue-600 hover:underline mt-2 block"
-                      >
-                        View transaction ↗
-                      </a>
-                    )}
-                  </div>
-                ))
-              )}
-            </div>
-          </section>
-        )}
+                  ))
+                )}
+              </div>
+            </section>
+          )}
+        </ClientOnly>
       </div>
 
       {/* Footer */}
