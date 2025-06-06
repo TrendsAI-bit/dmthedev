@@ -187,33 +187,45 @@ export async function encryptMessage(message: string, recipientPublicKey: string
   }
 }
 
-export async function decryptMessage(encryptedData: EncryptedData, wallet: any, recipientAddress: string): Promise<Uint8Array> {
+/**
+ * Decrypts a message using the wallet's native decryption function.
+ * This is the correct, secure way to decrypt, as it uses the user's
+ * real private key without exposing it.
+ */
+export async function decryptMessage(
+  encryptedData: EncryptedData, 
+  wallet: any, // The wallet adapter instance
+  recipientAddress: string
+): Promise<Uint8Array> {
   try {
-    console.log("Starting decryption process in utility");
-    
-    // Validate input
-    if (!encryptedData?.ciphertext || !encryptedData?.nonce || !encryptedData?.ephemeralPublicKey) {
-      throw new Error("Missing required encryption data");
-    }
-    
-    if (!isBase64(encryptedData.ciphertext) || !isBase64(encryptedData.nonce) || !isBase64(encryptedData.ephemeralPublicKey)) {
-      throw new Error("Invalid base64 encoding in encrypted data");
-    }
+    console.log("Starting decryption using wallet's native function...");
 
-    // Convert base64 to bytes
-    const data = {
-      ciphertext: fromBase64(encryptedData.ciphertext),
-      nonce: fromBase64(encryptedData.nonce),
-      ephemeralPublicKey: fromBase64(encryptedData.ephemeralPublicKey)
+    if (!wallet.decrypt) {
+      throw new Error("The connected wallet does not support the required decryption feature.");
+    }
+    
+    // The data needs to be in the format the wallet's decrypt method expects.
+    // This typically includes the ciphertext, nonce, and the ephemeral public key
+    // that the sender generated.
+    const payload = {
+      ciphertext: encryptedData.ciphertext,
+      nonce: encryptedData.nonce,
+      ephemeralPublicKey: encryptedData.ephemeralPublicKey,
+      recipient: recipientAddress, // Pass the recipient to ensure the correct key is used.
     };
+    
+    // The wallet's decrypt method will handle the complex cryptography internally.
+    const decryptedBytes = await wallet.decrypt(payload);
 
-    // Perform decryption and return raw bytes
-    const decryptedBytes = await performDecryption(data, wallet, recipientAddress);
-    console.log("✅ Decryption successful, returning raw bytes");
+    if (!decryptedBytes) {
+      throw new Error("Decryption returned no data.");
+    }
+
+    console.log("✅ Native wallet decryption successful");
     return decryptedBytes;
     
   } catch (error) {
-    console.error("Decryption failed in utility:", error);
+    console.error("Native wallet decryption failed:", error);
     throw error;
   }
 }
@@ -245,33 +257,4 @@ async function performEncryption(messageBytes: Uint8Array, recipientPublicKeyB58
     nonce,
     ephemeralPublicKey: ephemeralKeypair.publicKey
   };
-}
-
-async function performDecryption(data: {
-  ciphertext: Uint8Array,
-  nonce: Uint8Array,
-  ephemeralPublicKey: Uint8Array
-}, wallet: any, recipientAddress: string): Promise<Uint8Array> {
-  // Get signature from wallet
-  const message = new TextEncoder().encode(
-    `Sign to decrypt messages on DM the DEV\nWallet: ${recipientAddress}`
-  );
-  
-  const signature = await wallet.signMessage(message);
-  const signatureBytes = signature instanceof Uint8Array ? signature : bs58.decode(signature);
-  
-  // Derive secret key
-  const hash = sha512(signatureBytes);
-  const secretKey = new Uint8Array(hash.slice(0, box.secretKeyLength));
-  
-  // Generate shared key
-  const sharedKey = box.before(data.ephemeralPublicKey, secretKey);
-  
-  // Decrypt
-  const decrypted = box.after(data.ciphertext, data.nonce, sharedKey);
-  if (!decrypted) {
-    throw new Error('Decryption failed');
-  }
-  
-  return decrypted;
 } 
