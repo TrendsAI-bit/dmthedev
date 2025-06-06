@@ -9,65 +9,18 @@ interface Props {
   recipientAddress: string;
 }
 
-// Custom hook to handle mounting state
-const useHasMounted = () => {
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
-  return mounted;
-};
-
-// Safe text decoder that handles binary data
-const safeDecodeMessage = (result: string): string => {
-  if (!result) return "[Empty message]";
-  
-  // Check if already formatted
-  if (result.startsWith('[') || result.startsWith('{')) {
-    try {
-      // Try parsing as JSON to validate
-      JSON.parse(result);
-      return result;
-    } catch {
-      // Not valid JSON, continue with other checks
-    }
-  }
-
-  try {
-    // Try parsing as base64 first
-    const decoded = atob(result);
-    try {
-      // Try parsing decoded result as JSON
-      const parsed = JSON.parse(decoded);
-      return JSON.stringify(parsed, null, 2);
-    } catch {
-      // Not JSON, return as text if it looks like text
-      if (/^[\x20-\x7E]*$/.test(decoded)) {
-        return decoded;
-      }
-      return `[Binary data - ${result.length} bytes]`;
-    }
-  } catch {
-    // Not base64, try direct UTF-8 decoding
-    try {
-      const bytes = new TextEncoder().encode(result);
-      const decoded = new TextDecoder("utf-8", { fatal: true }).decode(bytes);
-      return decoded;
-    } catch {
-      // If all decoding fails, return as binary
-      return `[Binary data - ${result.length} bytes]`;
-    }
-  }
-};
-
 export default function DecryptedMessage({ encryptedData, wallet, recipientAddress }: Props) {
   const [output, setOutput] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const hasMounted = useHasMounted();
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    if (!hasMounted) return;
+    setMounted(true);
+  }, []);
 
-    console.log("✅ Component mounted, starting client-side decryption");
-    
+  useEffect(() => {
+    if (!mounted) return;
+
     async function handleDecrypt() {
       if (!encryptedData || !wallet || !recipientAddress) {
         setError("[Missing data] Required decryption data not available");
@@ -75,35 +28,46 @@ export default function DecryptedMessage({ encryptedData, wallet, recipientAddre
       }
 
       try {
-        console.log("🔄 Starting decryption process");
-        const result = await decryptMessage(encryptedData, wallet, recipientAddress);
+        console.log("🔄 Starting decryption process in component");
+        const decryptedUint8Array = await decryptMessage(encryptedData, wallet, recipientAddress);
         
-        console.log("Decrypted Result Type:", typeof result);
-        if (typeof result !== 'string') {
-          console.warn("Unexpected result type:", result);
-          setError("[Invalid data] Decryption returned non-string data");
-          return;
+        let result: string;
+        try {
+          result = new TextDecoder("utf-8", { fatal: true }).decode(decryptedUint8Array);
+          console.log("✅ Successfully decoded as UTF-8");
+        } catch (e) {
+          console.warn("⚠️ UTF-8 decoding failed, returning as base64");
+          // Fallback to base64 for binary data
+          const B64_CHUNK_SIZE = 8192;
+          let base64 = "";
+          for (let i = 0; i < decryptedUint8Array.length; i += B64_CHUNK_SIZE) {
+              base64 += String.fromCharCode.apply(
+                  null,
+                  Array.from(decryptedUint8Array.subarray(i, i + B64_CHUNK_SIZE))
+              );
+          }
+          result = btoa(base64);
         }
 
-        const safeResult = safeDecodeMessage(result);
-        console.log("✅ Message safely decoded");
-        setOutput(safeResult);
+        setOutput(result);
         
       } catch (err) {
-        console.warn("[Decryption Warning]", err);
+        console.error("[Component Decryption Error]", err);
         setError(`[❌ Decryption failed] ${err instanceof Error ? err.message : 'Unknown error'}`);
       }
     }
 
     handleDecrypt();
-  }, [encryptedData, wallet, recipientAddress, hasMounted]);
+  }, [mounted, encryptedData, wallet, recipientAddress]);
 
-  // Early return during SSR or before mount
-  if (!hasMounted) {
-    return null;
+  if (!mounted) {
+    return (
+      <div className="mt-2 p-3 rounded-lg text-sm break-all bg-blue-50 text-blue-800">
+        [🔄 Initializing decryption...]
+      </div>
+    );
   }
-
-  // Handle different states with appropriate styling
+  
   if (error) {
     return (
       <div className="mt-2 p-3 rounded-lg text-sm break-all bg-red-50 text-red-600 font-mono">
@@ -119,18 +83,32 @@ export default function DecryptedMessage({ encryptedData, wallet, recipientAddre
       </div>
     );
   }
-
-  // Determine message type and styling
-  const isBinary = output.startsWith('[Binary');
-  const isJson = output.startsWith('{') || output.startsWith('[');
   
-  const style = isBinary ? 'bg-yellow-50 text-yellow-800' 
-    : isJson ? 'bg-blue-50 text-blue-800' 
-    : 'bg-gray-100';
+  // Sanitize for rendering
+  const isJson = (output.startsWith('{') && output.endsWith('}')) || (output.startsWith('[') && output.endsWith(']'));
+  let displayOutput = output;
+  let style = 'bg-gray-100';
+
+  if (isJson) {
+      try {
+          // Format JSON nicely
+          displayOutput = JSON.stringify(JSON.parse(output), null, 2);
+          style = 'bg-blue-50 text-blue-800 font-mono';
+      } catch (e) {
+          // Not valid JSON, treat as text
+      }
+  } else if (/[^\x20-\x7E\n\r]/.test(output)) {
+      // If it contains non-printable characters, it might be base64 binary
+      style = 'bg-yellow-50 text-yellow-800 font-mono';
+      displayOutput = `[Binary Data - Base64]\n${output}`;
+  }
+
 
   return (
-    <div className={`mt-2 p-3 rounded-lg text-sm break-all ${style} ${isJson ? 'font-mono whitespace-pre-wrap' : ''}`}>
-      {output}
+    <div className={`mt-2 p-3 rounded-lg text-sm break-all ${style}`}>
+      <pre className="whitespace-pre-wrap break-all">
+        {displayOutput}
+      </pre>
     </div>
   );
 } 

@@ -308,8 +308,24 @@ export default function Home() {
         return;
       }
       
-      const decrypted = await decryptMessage(dataToDecrypt, wallet.adapter, publicKey.toBase58());
-      setDecryptedMessage(decrypted);
+      const decryptedBytes = await decryptMessage(dataToDecrypt, wallet.adapter, publicKey.toBase58());
+      
+      let result: string;
+      try {
+        result = new TextDecoder("utf-8", { fatal: true }).decode(decryptedBytes);
+      } catch (e) {
+        // Fallback to base64 for binary data
+        const B64_CHUNK_SIZE = 8192;
+        let base64 = "";
+        for (let i = 0; i < decryptedBytes.length; i += B64_CHUNK_SIZE) {
+            base64 += String.fromCharCode.apply(
+                null,
+                Array.from(decryptedBytes.subarray(i, i + B64_CHUNK_SIZE))
+            );
+        }
+        result = btoa(base64);
+      }
+      setDecryptedMessage(result);
 
     } catch (error: any) {
       console.error('Pasted message decryption error:', error);
@@ -325,7 +341,9 @@ export default function Home() {
           <div className="text-3xl font-bold -rotate-1 relative">
             DM the DEV ✎
           </div>
-          <WalletMultiButton className="wallet-btn" />
+          <ClientOnly>
+            <WalletMultiButton className="wallet-btn" />
+          </ClientOnly>
         </div>
       </header>
 

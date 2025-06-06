@@ -189,9 +189,9 @@ export async function encryptMessage(message: string, recipientPublicKey: string
   }
 }
 
-export async function decryptMessage(encryptedData: EncryptedData, wallet: any, recipientAddress: string): Promise<string> {
+export async function decryptMessage(encryptedData: EncryptedData, wallet: any, recipientAddress: string): Promise<Uint8Array> {
   try {
-    console.log("Starting decryption process");
+    console.log("Starting decryption process in utility");
     
     // Validate input
     if (!encryptedData?.ciphertext || !encryptedData?.nonce || !encryptedData?.ephemeralPublicKey) {
@@ -209,21 +209,13 @@ export async function decryptMessage(encryptedData: EncryptedData, wallet: any, 
       ephemeralPublicKey: fromBase64(encryptedData.ephemeralPublicKey)
     };
 
-    // Perform decryption
+    // Perform decryption and return raw bytes
     const decryptedBytes = await performDecryption(data, wallet, recipientAddress);
+    console.log("✅ Decryption successful, returning raw bytes");
+    return decryptedBytes;
     
-    // Try decoding as UTF-8
-    try {
-      const decoded = new TextDecoder("utf-8", { fatal: true }).decode(decryptedBytes);
-      console.log("✅ Successfully decoded as UTF-8");
-      return decoded;
-    } catch {
-      // If UTF-8 decoding fails, return as base64
-      console.log("⚠️ UTF-8 decoding failed, returning as base64");
-      return toBase64(decryptedBytes);
-    }
   } catch (error) {
-    console.error("Decryption failed:", error);
+    console.error("Decryption failed in utility:", error);
     throw error;
   }
 }
