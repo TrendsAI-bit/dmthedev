@@ -7,9 +7,10 @@ interface Props {
   encryptedData: EncryptedData;
   wallet: any;
   senderAddress?: string;
+  encryptedForPublicKey?: string;
 }
 
-export default function DecryptedMessage({ encryptedData, wallet, senderAddress }: Props) {
+export default function DecryptedMessage({ encryptedData, wallet, senderAddress, encryptedForPublicKey }: Props) {
   const [output, setOutput] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [mounted, setMounted] = useState(false);
@@ -29,7 +30,7 @@ export default function DecryptedMessage({ encryptedData, wallet, senderAddress 
 
       try {
         console.log("🔄 Starting decryption process in component");
-        const decryptedUint8Array = await decryptMessage(encryptedData, wallet.adapter);
+        const decryptedUint8Array = await decryptMessage(encryptedData, wallet.adapter, encryptedForPublicKey);
         
         // --- DETAILED DEBUG LOGS ---
         console.log("Decrypted raw bytes:", decryptedUint8Array);
@@ -93,7 +94,7 @@ export default function DecryptedMessage({ encryptedData, wallet, senderAddress 
     }
 
     handleDecrypt();
-  }, [mounted, encryptedData, wallet]);
+  }, [mounted, encryptedData, wallet, encryptedForPublicKey]);
 
   if (!mounted) {
     return (

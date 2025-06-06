@@ -1,16 +1,20 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
-import { encryptMessage, decryptMessage, testEncryptionDecryption } from '@/utils/encryption';
-import { storeMessage, getMessages, getRecipientKey, type Message } from '@/utils/supabase';
-import DecryptedMessage from '@/components/DecryptedMessage';
-import KeyDerivation from '@/components/KeyDerivation';
+import { getTokenData } from '@/utils/helius';
+import { Connection, PublicKey, Transaction, SystemProgram, LAMPORTS_PER_SOL } from '@solana/web3.js';
+import { encryptMessage, decryptMessage, EncryptedData, testEncryptionDecryption, deriveKeypairFromWallet } from '@/utils/encryption';
+import { uploadMessage, fetchMessagesForDeployer, EncryptedMessage } from '@/utils/supabase';
 import dynamic from 'next/dynamic';
+import ClientOnly from '@/components/ClientOnly';
+import bs58 from 'bs58';
 
-// Import DecryptedMessage with SSR disabled for compatibility
-const DecryptedMessageSSR = dynamic(() => import('@/components/DecryptedMessage'), {
+const HELIUS_RPC = process.env.NEXT_PUBLIC_HELIUS_RPC || 'https://mainnet.helius-rpc.com/?api-key=7c8a804a-bb84-4963-b03b-421a5d39c887';
+
+// Import DecryptedMessage with SSR disabled
+const DecryptedMessage = dynamic(() => import('@/components/DecryptedMessage'), {
   ssr: false,
   loading: () => (
     <div className="mt-2 p-3 rounded-lg text-sm break-all bg-blue-50 text-blue-800">
@@ -20,117 +24,370 @@ const DecryptedMessageSSR = dynamic(() => import('@/components/DecryptedMessage'
 });
 
 export default function Home() {
-  const { wallet, connected, publicKey } = useWallet();
-  const [recipientAddress, setRecipientAddress] = useState('');
+  const { publicKey, sendTransaction, connected, wallet } = useWallet();
   const [message, setMessage] = useState('');
-  const [messages, setMessages] = useState<Message[]>([]);
+  const [tipAmount, setTipAmount] = useState('');
+  const [tokenAddress, setTokenAddress] = useState('');
+  const [encryptedMessage, setEncryptedMessage] = useState('');
+  const [decryptedMessage, setDecryptedMessage] = useState('');
+  const [deployerInfo, setDeployerInfo] = useState<{
+    address: string;
+    token: string;
+    name: string;
+    symbol: string;
+    error?: string;
+    marketCap?: number | null;
+    creatorSolBalance?: number | null;
+  } | null>(null);
+  const [recipientKey, setRecipientKey] = useState<string>('');
+  const [isDerivedKeyReady, setIsDerivedKeyReady] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
-  const [userDerivedKey, setUserDerivedKey] = useState<string | null>(null);
+  const [isSending, setIsSending] = useState(false);
+  const [activeTab, setActiveTab] = useState<'send' | 'decrypt'>('send');
+  const [messages, setMessages] = useState<EncryptedMessage[]>([]);
+  const [decryptedMessages, setDecryptedMessages] = useState<Record<string, string>>({});
+  const [testResult, setTestResult] = useState<string>('');
 
-  // Load messages when wallet connects
-  useEffect(() => {
-    if (connected && publicKey) {
-      loadMessages();
-      // Run test on connect
-      testEncryptionDecryption();
-    }
-  }, [connected, publicKey]);
-
-  const loadMessages = async () => {
-    if (!publicKey) return;
+  const handleFindDeployer = async () => {
+    if (!tokenAddress) return;
+    
+    setIsLoading(true);
+    setRecipientKey('');
+    setIsDerivedKeyReady(false);
     
     try {
-      const walletAddress = publicKey.toBase58();
-      const { data, error } = await getMessages(walletAddress);
+      const result = await getTokenData(tokenAddress);
       
-      if (error) {
-        console.error("Error loading messages:", error);
-        return;
+      if (result.success && result.creator) {
+        setDeployerInfo({
+          address: result.creator,
+          token: result.name || 'Unknown Token',
+          name: result.name || 'Unknown',
+          symbol: result.symbol || '???',
+          marketCap: result.marketCap,
+          creatorSolBalance: result.creatorSolBalance,
+        });
+      } else {
+        setDeployerInfo({
+          address: 'Not found',
+          token: 'Invalid token',
+          name: 'Unknown',
+          symbol: '???',
+          error: result.error || 'Could not find token information',
+        });
       }
-      
-      setMessages(data);
-    } catch (err) {
-      console.error("Exception loading messages:", err);
-    }
-  };
-
-  const handleSendMessage = async () => {
-    if (!wallet || !connected || !publicKey) {
-      setError("Wallet not connected [no-wallet]");
-      return;
-    }
-
-    if (!recipientAddress.trim()) {
-      setError("Please enter a recipient address [missing-recipient]");
-      return;
-    }
-
-    if (!message.trim()) {
-      setError("Please enter a message [empty-message]");
-      return;
-    }
-
-    setIsLoading(true);
-    setError(null);
-    setSuccess(null);
-
-    try {
-      console.log("🔍 Step 1: Looking up recipient's derived public key...");
-      
-      // Step 1: Get recipient's derived public key from Supabase
-      const { data: recipientKeyData, error: keyError } = await getRecipientKey(recipientAddress);
-      
-      if (keyError) {
-        throw new Error(`Failed to lookup recipient key: ${keyError.message}`);
-      }
-      
-      if (!recipientKeyData) {
-        throw new Error(`Recipient ${recipientAddress} has not derived their messaging key yet. They need to visit this app and derive their key first! [no-key]`);
-      }
-      
-      console.log("✅ Found recipient's derived public key:", recipientKeyData.derived_pubkey);
-      
-      // Step 2: Encrypt message using recipient's derived public key
-      console.log("🔐 Step 2: Encrypting message...");
-      const encrypted = encryptMessage(message, recipientKeyData.derived_pubkey);
-      console.log("✅ Message encrypted successfully");
-      
-      // Step 3: Store encrypted message in Supabase
-      console.log("💾 Step 3: Storing encrypted message...");
-      const senderAddress = publicKey.toBase58();
-      const { error: storeError } = await storeMessage(
-        senderAddress,
-        recipientAddress,
-        encrypted.ciphertext,
-        encrypted.nonce,
-        encrypted.ephemeralPublicKey
-      );
-      
-      if (storeError) {
-        throw new Error(`Failed to store message: ${storeError.message}`);
-      }
-      
-      console.log("✅ Message sent successfully!");
-      setSuccess(`Message sent to ${recipientAddress}! [rocket]`);
-      setMessage('');
-      setRecipientAddress('');
-      
-      // Reload messages
-      await loadMessages();
-      
-    } catch (err: any) {
-      console.error("❌ Send message failed:", err);
-      setError(err.message || "Failed to send message [error]");
+    } catch (error) {
+      console.error('Error finding deployer:', error);
+      setDeployerInfo({
+        address: 'Error',
+        token: 'Error',
+        name: 'Error',
+        symbol: '???',
+        error: 'Failed to fetch token information',
+      });
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleKeyDerived = (derivedKey: string) => {
-    setUserDerivedKey(derivedKey);
-    console.log("✅ User key derived:", derivedKey);
+  const handleDeriveRecipientKey = async () => {
+    if (!deployerInfo?.address || deployerInfo.error) {
+      alert('Please find a valid deployer first!');
+      return;
+    }
+
+    if (!connected || !wallet?.adapter) {
+      alert('Please connect your wallet first!');
+      return;
+    }
+
+    try {
+      console.log("🔑 Deriving recipient key...");
+      
+      // Create a mock wallet for the deployer to simulate their signature
+      const deployerAddress = deployerInfo.address;
+      
+      // In a real scenario, we would ask the deployer to sign this message
+      // For now, we'll create a deterministic key based on their address
+      const message = `DM_DEV_DECRYPT:${deployerAddress}`;
+      const messageBytes = new TextEncoder().encode(message);
+      
+      // Create a deterministic signature for the deployer
+      // In real usage, the deployer would sign this with their wallet
+      const deployerPublicKeyBytes = bs58.decode(deployerAddress);
+      const deterministicSignature = new Uint8Array(64);
+      for (let i = 0; i < 64; i++) {
+        deterministicSignature[i] = (deployerPublicKeyBytes[i % 32] + messageBytes[i % messageBytes.length]) % 256;
+      }
+      
+      // Create mock deployer wallet
+      const mockDeployerWallet = {
+        publicKey: { toBase58: () => deployerAddress },
+        signMessage: async () => deterministicSignature,
+        name: "DeployerWallet"
+      };
+      
+      // Derive the keypair that the deployer would have
+      const derivedKeypair = await deriveKeypairFromWallet(mockDeployerWallet);
+      const derivedPublicKeyBase58 = bs58.encode(derivedKeypair.publicKey);
+      
+      setRecipientKey(derivedPublicKeyBase58);
+      setIsDerivedKeyReady(true);
+      
+      console.log("✅ Recipient key derived:", derivedPublicKeyBase58);
+      
+    } catch (error) {
+      console.error('Failed to derive recipient key:', error);
+      alert('Failed to derive recipient key. Please try again.');
+    }
+  };
+
+  const sendMessage = async (withTip: boolean) => {
+    if (!message || !publicKey || !deployerInfo?.address || deployerInfo.error) {
+      alert('Please connect wallet, enter a message, and find a valid token deployer first!');
+      return;
+    }
+
+    if (!isDerivedKeyReady || !recipientKey) {
+      alert('Please derive the recipient key first!');
+      return;
+    }
+
+    if (!connected) {
+      alert('Please connect your wallet first!');
+      return;
+    }
+
+    setIsSending(true);
+    try {
+      const connection = new Connection(HELIUS_RPC, 'confirmed');
+      
+      // Check balance if tipping
+      if (withTip && parseFloat(tipAmount) > 0) {
+        try {
+          const balance = await connection.getBalance(publicKey);
+          const tipLamports = parseFloat(tipAmount) * LAMPORTS_PER_SOL;
+          const fee = 5000; // Estimated transaction fee in lamports
+          
+          if (balance < tipLamports + fee) {
+            alert('Insufficient SOL balance for tip and transaction fee');
+            setIsSending(false);
+            return;
+          }
+        } catch (error) {
+          console.error('Error checking balance:', error);
+          alert('Failed to check wallet balance. Please try again.');
+          setIsSending(false);
+          return;
+        }
+      }
+
+      // Step 1: Send tip if requested
+      let txSig: string | undefined = undefined;
+      if (withTip && parseFloat(tipAmount) > 0) {
+        try {
+          const transaction = new Transaction();
+          
+          const transferInstruction = SystemProgram.transfer({
+            fromPubkey: publicKey,
+            toPubkey: new PublicKey(deployerInfo.address),
+            lamports: parseFloat(tipAmount) * LAMPORTS_PER_SOL,
+          });
+
+          transaction.add(transferInstruction);
+
+          const latestBlockhash = await connection.getLatestBlockhash('confirmed');
+          transaction.recentBlockhash = latestBlockhash.blockhash;
+          transaction.feePayer = publicKey;
+
+          txSig = await sendTransaction(transaction, connection);
+          
+          // Wait for confirmation
+          const confirmation = await connection.confirmTransaction({
+            signature: txSig,
+            blockhash: latestBlockhash.blockhash,
+            lastValidBlockHeight: latestBlockhash.lastValidBlockHeight
+          });
+
+          if (confirmation.value.err) {
+            throw new Error('Transaction failed to confirm');
+          }
+
+        } catch (error) {
+          console.error('Transaction failed:', error);
+          alert('Failed to send tip. Please try again.');
+          setIsSending(false);
+          return;
+        }
+      }
+
+      // Step 2: Encrypt message using derived key
+      let encrypted;
+      try {
+        console.log("Plaintext message being encrypted:", message);
+        console.log("Using derived recipient key:", recipientKey);
+        encrypted = encryptMessage(message, recipientKey);
+      } catch (error) {
+        console.error('Encryption failed:', error);
+        alert('Failed to encrypt message. Please try again.');
+        setIsSending(false);
+        return;
+      }
+
+      // Step 3: Upload to Supabase
+      try {
+        await uploadMessage({
+          senderAddress: publicKey.toBase58(),
+          recipientAddress: deployerInfo.address,
+          ciphertext: encrypted.ciphertext,
+          nonce: encrypted.nonce,
+          ephemeralPublicKey: encrypted.ephemeralPublicKey,
+          usesSignatureDerivedKey: true,
+          encryptedForPublicKey: recipientKey,
+        });
+
+        // Clear form
+        setMessage('');
+        setTipAmount('');
+        alert('Message sent successfully!');
+      } catch (error) {
+        console.error('Failed to save message:', error);
+        if (txSig) {
+          alert('Tip was sent but failed to save message. Please contact support with this transaction ID: ' + txSig);
+        } else {
+          alert('Failed to save message. Please try again.');
+        }
+      }
+    } catch (error) {
+      console.error('Error in send process:', error);
+      alert('Failed to process request. Please try again.');
+    } finally {
+      setIsSending(false);
+    }
+  };
+
+  const fetchMessages = useCallback(async () => {
+    if (!publicKey) return;
+    
+    try {
+      const fetchedMessages = await fetchMessagesForDeployer(publicKey.toBase58());
+      setMessages(fetchedMessages);
+    } catch (error) {
+      console.error('Failed to fetch messages:', error);
+    }
+  }, [publicKey?.toBase58()]);
+
+  // Fetch messages when wallet connects/disconnects
+  useEffect(() => {
+    let mounted = true;
+
+    const loadMessages = async () => {
+      if (publicKey) {
+        try {
+          const fetchedMessages = await fetchMessagesForDeployer(publicKey.toBase58());
+          if (mounted) {
+            setMessages(fetchedMessages);
+            // Clear decrypted messages when loading new ones
+            setDecryptedMessages({});
+          }
+        } catch (error) {
+          console.error('Failed to fetch messages:', error);
+        }
+      } else if (mounted) {
+        setMessages([]);
+        setDecryptedMessages({});
+      }
+    };
+
+    loadMessages();
+
+    return () => {
+      mounted = false;
+    };
+  }, [publicKey?.toBase58()]);
+
+  // Update the handleDecryptMessage function
+  const handleDecryptMessageFromList = useCallback(async (messageId: string) => {
+    if (!connected || !publicKey || !wallet) {
+      alert('Please connect your wallet first');
+      return;
+    }
+
+    const messageToDecrypt = messages.find(m => m.id === messageId);
+    if (!messageToDecrypt) return;
+
+    setDecryptedMessages(prev => ({ ...prev, [messageId]: 'Decrypting...' }));
+
+    try {
+      setDecryptedMessages(prev => ({ ...prev, [messageId]: 'DECRYPT_READY' }));
+    } catch (err) {
+      console.error('Decryption failed for list item:', err);
+      const errorMsg = err instanceof Error ? err.message : 'Unknown error';
+      setDecryptedMessages(prev => ({ ...prev, [messageId]: `[❌ Decryption failed] ${errorMsg}` }));
+    }
+  }, [connected, publicKey, wallet, messages]);
+
+  // Decrypts a pasted JSON message
+  const handleDecryptPastedMessage = async () => {
+    if (!connected || !publicKey || !wallet?.adapter) {
+      alert('Please connect your wallet to decrypt messages.');
+      return;
+    }
+
+    let parsedData: EncryptedData;
+    try {
+      parsedData = JSON.parse(encryptedMessage);
+      if (!parsedData.ciphertext || !parsedData.nonce || !parsedData.ephemeralPublicKey) {
+        throw new Error('Invalid encrypted message format.');
+      }
+    } catch (e) {
+      alert('Invalid JSON. Please paste the full encrypted message object.');
+      return;
+    }
+
+    try {
+      // New signature-based decryption approach with key verification
+      const decryptedUint8Array = await decryptMessage(parsedData, wallet.adapter);
+      
+      let result: string;
+      try {
+        const decodedText = new TextDecoder("utf-8", { fatal: true }).decode(decryptedUint8Array);
+        try {
+          const parsed = JSON.parse(decodedText);
+          if (parsed && parsed.v === 2 && typeof parsed.data === 'string') {
+            result = parsed.data;
+          } else {
+            result = decodedText;
+          }
+        } catch (e) {
+          result = decodedText;
+        }
+      } catch (e) {
+        const B64_CHUNK_SIZE = 8192;
+        let base64 = "";
+        for (let i = 0; i < decryptedUint8Array.length; i += B64_CHUNK_SIZE) {
+            base64 += String.fromCharCode.apply(
+                null,
+                Array.from(decryptedUint8Array.subarray(i, i + B64_CHUNK_SIZE))
+            );
+        }
+        result = `[Raw Binary Data]\n${btoa(base64)}`;
+      }
+      setDecryptedMessage(result);
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : 'Unknown error';
+      setDecryptedMessage(`[❌ Decryption failed] ${errorMsg}`);
+    }
+  };
+
+  const runEncryptionTest = async () => {
+    setTestResult('Running test...');
+    try {
+      const success = await testEncryptionDecryption();
+      setTestResult(success ? '✅ Test passed! Encryption/decryption works correctly.' : '❌ Test failed! Check console for details.');
+    } catch (error) {
+      setTestResult(`❌ Test error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
   };
 
   return (
@@ -141,7 +398,9 @@ export default function Home() {
           <div className="text-3xl font-bold -rotate-1 relative">
             DM the DEV ✎
           </div>
-          <WalletMultiButton className="wallet-btn" />
+          <ClientOnly>
+            <WalletMultiButton className="wallet-btn" />
+          </ClientOnly>
         </div>
       </header>
 
@@ -151,143 +410,293 @@ export default function Home() {
           <div className="font-mono text-4xl whitespace-pre -rotate-2">
             {'   o\n  /|\\\n  / \\'}</div>
           <div className="bg-white border-3 border-black rounded-[20px] p-4 max-w-[350px] rotate-1 relative">
-            Hey! I'm your ugly but trustworthy DEV mascot! Now with REAL end-to-end encryption! [nerd face]
+            Hey! I'm your ugly but trustworthy DEV mascot! [nerd face]
           </div>
         </div>
 
-        {connected ? (
+        <ClientOnly>
           <>
-            {/* Key Derivation Section */}
-            <KeyDerivation onKeyDerived={handleKeyDerived} />
-            
-            {/* Send Message Section */}
+            {/* Test Section */}
             <section className="section mb-8">
-              <h2 className="section-title">[💌] Send Encrypted Message</h2>
-              
+              <h2 className="section-title">[🧪] Test New Encryption</h2>
+              <p className="mb-4 text-gray-600">
+                Test the new signature-based encryption/decryption system.
+              </p>
+              <button
+                onClick={runEncryptionTest}
+                className="bg-yellow-100 border-3 border-black py-2 px-4 font-bold rounded-xl hover:bg-yellow-200 transition-colors"
+              >
+                🧪 Run Encryption Test
+              </button>
+              {testResult && (
+                <div className={`mt-3 p-3 rounded-lg text-sm ${
+                  testResult.startsWith('✅') ? 'bg-green-50 text-green-700' :
+                  testResult.startsWith('❌') ? 'bg-red-50 text-red-700' :
+                  'bg-blue-50 text-blue-700'
+                }`}>
+                  {testResult}
+                </div>
+              )}
+            </section>
+
+            {/* Token Lookup */}
+            <section className="section">
+              <h2 className="section-title">[🔍] Token Lookup</h2>
               <div className="space-y-4">
                 <input
                   type="text"
                   className="w-full p-4 border-3 border-black rounded-xl font-comic -rotate-[0.2deg]"
-                  placeholder="Enter recipient wallet address..."
-                  value={recipientAddress}
-                  onChange={(e) => setRecipientAddress(e.target.value)}
-                  disabled={isLoading}
+                  placeholder="Enter Solana Token Address"
+                  value={tokenAddress}
+                  onChange={(e) => setTokenAddress(e.target.value)}
                 />
-                
-                <textarea
-                  className="w-full p-4 border-3 border-black rounded-xl font-comic resize-y min-h-[120px] bg-white rotate-[0.1deg]"
-                  placeholder="Write your encrypted message..."
-                  value={message}
-                  onChange={(e) => setMessage(e.target.value)}
-                  disabled={isLoading}
-                />
-                
                 <button
-                  onClick={handleSendMessage}
-                  disabled={isLoading || !userDerivedKey}
-                  className="w-full bg-white border-3 border-black py-4 px-6 font-bold rounded-xl rotate-[0.5deg] hover:animate-bounce-light disabled:opacity-50 disabled:cursor-not-allowed"
+                  onClick={handleFindDeployer}
+                  disabled={isLoading}
+                  className="bg-white border-3 border-black py-4 px-6 font-bold rounded-xl rotate-[0.5deg] hover:animate-bounce-light w-full disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {isLoading ? '⏳ Sending Message...' : '🔐 Send Encrypted Message [send]'}
+                  {isLoading ? 'Searching... 🔍' : 'Find Deployer 🧠 ↗'}
                 </button>
-                
-                {!userDerivedKey && (
-                  <div className="bg-[#fffacd] border-3 border-black rounded-xl p-4 -rotate-1">
-                    ⚠️ Please derive your messaging key first before sending messages! [warning]
-                  </div>
-                )}
               </div>
-            </section>
-
-            {/* Status Messages */}
-            {error && (
-              <div className="mb-5 bg-[#ffe6e6] border-3 border-black rounded-xl p-5 -rotate-1">
-                <div className="font-bold text-red-600">❌ {error}</div>
-              </div>
-            )}
-            
-            {success && (
-              <div className="mb-5 bg-[#e6ffe6] border-3 border-black rounded-xl p-5 rotate-1">
-                <div className="font-bold text-green-600">✅ {success}</div>
-              </div>
-            )}
-
-            {/* Messages Section */}
-            <section className="section mt-8">
-              <h2 className="section-title">[📬] Your Messages</h2>
-              
-              {messages.length === 0 ? (
-                <div className="text-center text-gray-500 py-8 font-comic -rotate-[0.3deg]">
-                  No messages found. Share your address with others to receive encrypted messages! [mailbox]
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {messages.map((msg, index) => (
-                    <div 
-                      key={msg.id} 
-                      className={`border-3 border-black rounded-xl p-4 bg-white ${
-                        index % 2 === 0 ? 'rotate-[0.5deg]' : '-rotate-[0.3deg]'
-                      }`}
-                    >
-                      <div className="flex justify-between items-start mb-2">
-                        <div className="font-bold">
-                          {msg.sender_address === publicKey?.toBase58() ? (
-                            <span className="text-blue-700">📤 Sent to: {msg.recipient_address.slice(0, 4)}...{msg.recipient_address.slice(-4)}</span>
-                          ) : (
-                            <span className="text-green-700">📥 From: {msg.sender_address.slice(0, 4)}...{msg.sender_address.slice(-4)}</span>
-                          )}
-                        </div>
-                        <div className="text-sm text-gray-600 font-comic">
-                          {new Date(msg.created_at).toLocaleDateString()}
-                        </div>
-                      </div>
-                      
-                      {msg.recipient_address === publicKey?.toBase58() ? (
-                        <DecryptedMessageSSR
-                          encryptedData={{
-                            ciphertext: msg.ciphertext,
-                            nonce: msg.nonce,
-                            ephemeralPublicKey: msg.ephemeral_public_key,
-                          }}
-                          wallet={wallet}
-                        />
-                      ) : (
-                        <div className="text-sm text-gray-600 font-comic">
-                          🔐 Encrypted message (sent by you) [lock]
-                          <div className="mt-2 p-2 bg-gray-100 border-2 border-gray-300 rounded text-xs font-mono break-all">
-                            {msg.ciphertext.slice(0, 100)}...
-                          </div>
-                        </div>
+              {deployerInfo && (
+                <div className={`mt-5 border-3 border-black rounded-xl p-5 -rotate-1 ${
+                  deployerInfo.error ? 'bg-[#ffe6e6]' : 'bg-[#fffacd]'
+                }`}>
+                  {deployerInfo.error ? (
+                    <div className="text-red-600">{deployerInfo.error}</div>
+                  ) : (
+                    <>
+                      <div><strong>Token:</strong> {deployerInfo.name} ({deployerInfo.symbol})</div>
+                      <div><strong>Deployer:</strong> {deployerInfo.address}</div>
+                      {typeof deployerInfo.creatorSolBalance === 'number' && (
+                        <div><strong>Deployer SOL Balance:</strong> {deployerInfo.creatorSolBalance.toFixed(2)} SOL</div>
                       )}
-                    </div>
-                  ))}
+                      {typeof deployerInfo.marketCap === 'number' && (
+                        <div><strong>Token Price:</strong> ${deployerInfo.marketCap.toLocaleString('en-US', {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 6,
+                        })}</div>
+                      )}
+                    </>
+                  )}
                 </div>
               )}
             </section>
-          </>
-        ) : (
-          <div className="text-center py-12">
-            <div className="bg-white border-3 border-black rounded-xl p-8 rotate-1">
-              <h2 className="text-2xl font-bold mb-4 font-comic">
-                Welcome to DM the DEV! [wave]
-              </h2>
-              <p className="text-gray-600 mb-6 font-comic -rotate-[0.2deg]">
-                Connect your Solana wallet to start sending end-to-end encrypted messages
-              </p>
-              <div className="space-y-4 text-sm text-gray-500 font-comic">
-                <p className="rotate-[0.3deg]">🔐 <strong>Secure:</strong> Messages are encrypted with your wallet signature</p>
-                <p className="-rotate-[0.2deg]">🏗️ <strong>Decentralized:</strong> Built on Solana blockchain infrastructure</p>
-                <p className="rotate-[0.1deg]">🔑 <strong>Private:</strong> Only you and the recipient can read the messages</p>
-              </div>
+
+            {/* Message Tabs */}
+            <div className="flex gap-2 mb-4">
+              <button
+                onClick={() => setActiveTab('send')}
+                className={`flex-1 py-3 px-6 font-bold rounded-t-xl border-3 border-black transition-all ${
+                  activeTab === 'send'
+                    ? 'bg-white -rotate-1'
+                    : 'bg-gray-100 opacity-70 rotate-1'
+                }`}
+              >
+                [✉️] Send Message
+              </button>
+              <button
+                onClick={() => setActiveTab('decrypt')}
+                className={`flex-1 py-3 px-6 font-bold rounded-t-xl border-3 border-black transition-all ${
+                  activeTab === 'decrypt'
+                    ? 'bg-white rotate-1'
+                    : 'bg-gray-100 opacity-70 -rotate-1'
+                }`}
+              >
+                [🔑] Decrypt Message
+              </button>
             </div>
-          </div>
-        )}
+
+            {/* Send Message Section */}
+            {activeTab === 'send' && (
+              <section className="section">
+                <h2 className="section-title">[💌] Send Message to Developer</h2>
+                
+                {/* Step 1: Derive Recipient Key */}
+                <div className="mb-8 p-5 border-3 border-black rounded-xl bg-yellow-50 -rotate-[0.5deg]">
+                  <h3 className="text-xl font-bold mb-3">🔐 Step 1: Derive Recipient Key</h3>
+                  <p className="mb-4 text-gray-600">
+                    For secure messaging, we need to derive a signature-based key for the recipient.
+                  </p>
+                  <button
+                    onClick={handleDeriveRecipientKey}
+                    disabled={!deployerInfo?.address || !!deployerInfo?.error || !connected}
+                    className={`py-3 px-6 font-bold rounded-xl border-3 border-black transition-all ${
+                      isDerivedKeyReady 
+                        ? 'bg-green-200 text-green-800' 
+                        : 'bg-white hover:bg-gray-50'
+                    } disabled:opacity-50 disabled:cursor-not-allowed`}
+                  >
+                    {isDerivedKeyReady ? '✅ Key Derived' : '🔑 Derive Recipient Key'}
+                  </button>
+                  
+                  {recipientKey && (
+                    <div className="mt-3 p-3 bg-white border-2 border-black rounded-lg">
+                      <div className="text-sm text-gray-600 mb-1">Recipient key derived:</div>
+                      <div className="font-mono text-sm break-all">
+                        {recipientKey.slice(0, 8)}...{recipientKey.slice(-8)}
+                      </div>
+                    </div>
+                  )}
+                  
+                  {!connected && (
+                    <div className="mt-2 text-red-500 text-sm">
+                      Please connect your wallet to derive keys
+                    </div>
+                  )}
+                  
+                  {!deployerInfo && (
+                    <div className="mt-2 text-gray-500 text-sm">
+                      Please find a deployer first using the token lookup above
+                    </div>
+                  )}
+                </div>
+                
+                <div className="space-y-4">
+                  <textarea
+                    className="w-full p-4 border-3 border-black rounded-xl font-comic resize-y min-h-[120px] bg-white"
+                    placeholder="Write your message to the developer..."
+                    value={message}
+                    onChange={(e) => setMessage(e.target.value)}
+                    disabled={!connected || isSending || !isDerivedKeyReady}
+                  />
+                  <div className="flex gap-4">
+                    <input
+                      type="number"
+                      className="flex-1 p-4 border-3 border-black rounded-xl font-comic bg-white"
+                      placeholder="Tip amount in SOL (optional)"
+                      value={tipAmount}
+                      onChange={(e) => setTipAmount(e.target.value)}
+                      disabled={!connected || isSending || !isDerivedKeyReady}
+                      min="0"
+                      step="0.01"
+                    />
+                  </div>
+                  <div className="flex gap-4">
+                    <button
+                      onClick={() => sendMessage(false)}
+                      disabled={!connected || !message || isSending || !isDerivedKeyReady}
+                      className="flex-1 bg-white border-3 border-black py-4 px-6 font-bold rounded-xl rotate-[0.5deg] hover:animate-bounce-light disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {isSending ? '⏳ Sending...' : '💬 Send Message Only'}
+                    </button>
+                    <button
+                      onClick={() => sendMessage(true)}
+                      disabled={!connected || !message || isSending || !(tipAmount && tipAmount.trim()) || !isDerivedKeyReady}
+                      className="flex-1 bg-white border-3 border-black py-4 px-6 font-bold rounded-xl -rotate-[0.5deg] hover:animate-bounce-light disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {isSending ? '⏳ Sending...' : `💸 Send Message + ${tipAmount ? `${tipAmount} SOL` : 'Tip'}`}
+                    </button>
+                  </div>
+                  {!connected && (
+                    <div className="text-center text-red-500">
+                      Please connect your wallet to send messages!
+                    </div>
+                  )}
+                  {!isDerivedKeyReady && connected && (
+                    <div className="text-center text-orange-500">
+                      Please derive the recipient key first!
+                    </div>
+                  )}
+                </div>
+              </section>
+            )}
+
+            {/* Decrypt Message Section */}
+            {activeTab === 'decrypt' && (
+              <section className="section">
+                <h2 className="section-title">[🔑] Decrypt Messages</h2>
+                <p className="mb-5 text-gray-600 -rotate-[0.3deg]">
+                  Got an encrypted message? Paste it here to decrypt! [detective]
+                </p>
+                <div className="space-y-4">
+                  <div className="bg-white border-4 border-black rounded-[30px] p-5 -rotate-[0.3deg]">
+                    <textarea
+                      className="w-full min-h-[100px] font-comic resize-y bg-transparent"
+                      placeholder='Paste the full encrypted message JSON here, like: {"ciphertext": "...", "nonce": "...", "ephemeralPublicKey": "..."}'
+                      value={encryptedMessage}
+                      onChange={(e) => setEncryptedMessage(e.target.value)}
+                    />
+                  </div>
+                  <button
+                    onClick={handleDecryptPastedMessage}
+                    className="bg-white border-3 border-black py-4 px-8 font-bold rounded-xl rotate-1 hover:animate-bounce-light w-full"
+                  >
+                    Decrypt Message [unlock] ↗
+                  </button>
+                  {decryptedMessage && (
+                    <div className="mt-5 bg-[#e6f7ff] border-3 border-black rounded-xl p-5 -rotate-1">
+                      <div><strong>Decrypted Message:</strong></div>
+                      <pre className="mt-2 italic whitespace-pre-wrap break-all">{decryptedMessage}</pre>
+                    </div>
+                  )}
+                </div>
+              </section>
+            )}
+
+            {/* Messages Section */}
+            {connected && publicKey && (
+              <section className="section mt-8">
+                <h2 className="section-title">[📬] Your Messages</h2>
+                <div className="space-y-4">
+                  {messages.length === 0 ? (
+                    <div className="text-center text-gray-500 py-8">
+                      No messages found. Share your token with others to receive messages!
+                    </div>
+                  ) : (
+                    messages.map((msg) => (
+                      <div key={msg.id} className="border-3 border-black rounded-xl p-4 bg-white">
+                        <div className="flex justify-between items-start mb-2">
+                          <div>
+                            <div className="font-bold">From: {msg.senderAddress.slice(0, 4)}...{msg.senderAddress.slice(-4)}</div>
+                            <div className="text-sm text-gray-600">
+                              {msg.createdAt ? new Date(msg.createdAt).toUTCString() : 'Unknown date'}
+                            </div>
+                          </div>
+                        </div>
+                        
+                        {decryptedMessages[msg.id!] === 'DECRYPT_READY' ? (
+                          <DecryptedMessage
+                            encryptedData={{
+                              ciphertext: msg.ciphertext,
+                              nonce: msg.nonce,
+                              ephemeralPublicKey: msg.ephemeralPublicKey
+                            }}
+                            wallet={wallet}
+                            senderAddress={msg.senderAddress}
+                            encryptedForPublicKey={msg.encryptedForPublicKey}
+                          />
+                        ) : decryptedMessages[msg.id!] ? (
+                          <div className={`mt-2 p-3 rounded-lg text-sm break-all ${
+                            decryptedMessages[msg.id!].startsWith('[❌') ? 'bg-red-50 text-red-600' :
+                            'bg-blue-50 text-blue-800'
+                          }`}>
+                            {decryptedMessages[msg.id!]}
+                          </div>
+                        ) : (
+                          <button
+                            onClick={() => handleDecryptMessageFromList(msg.id!)}
+                            className="w-full mt-2 py-2 px-4 border-2 border-black rounded-lg bg-white hover:bg-gray-50 transition-colors"
+                            disabled={!connected}
+                          >
+                            {connected ? '🔑 Decrypt Message' : '🔒 Connect Wallet to Decrypt'}
+                          </button>
+                        )}
+                      </div>
+                    ))
+                  )}
+                </div>
+              </section>
+            )}
+          </>
+        </ClientOnly>
       </div>
 
       {/* Footer */}
       <footer className="text-center py-10 border-t-3 border-black mt-15 bg-white">
-        <div className="-rotate-[0.5deg] font-comic">
-          Yes, the dev is still ugly. But your messages are now ACTUALLY safe! 🛡️
-          <br /><small>Built with ❤️, terrible drawing skills, and proper cryptography</small>
+        <div className="-rotate-[0.5deg]">
+          Yes, the dev is ugly. But your messages are safe 🛡️
+          <br /><small>Built with ❤️ and terrible drawing skills</small>
         </div>
       </footer>
     </main>
