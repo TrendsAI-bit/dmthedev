@@ -34,44 +34,50 @@ function safelyDecodeBytes(bytes: Uint8Array): string {
   }
 
   try {
-    // First check if it might be binary data
-    let isBinary = false;
-    for (let i = 0; i < bytes.length; i++) {
-      // Check for common binary file signatures or non-text bytes
-      if (bytes[i] < 32 && ![9, 10, 13].includes(bytes[i])) { // Exclude tab, newline, carriage return
-        isBinary = true;
-        break;
-      }
-    }
-
-    if (isBinary) {
-      throw new Error('Binary data detected');
-    }
+    // First check if it's JSON by looking at first character
+    const firstByte = bytes[0];
+    const lastByte = bytes[bytes.length - 1];
+    const mightBeJson = firstByte === 123 && lastByte === 125; // '{' and '}'
 
     // Log attempt to decode
     console.log('Attempting UTF-8 decode of', bytes.length, 'bytes');
+    console.log('First byte:', firstByte, 'Last byte:', lastByte);
     
     // Attempt UTF-8 decoding
     const text = new TextDecoder('utf-8', { fatal: true }).decode(bytes);
     if (!text) {
       throw new Error('Empty text after decoding');
     }
+
+    // If it might be JSON, try to parse and format it
+    if (mightBeJson) {
+      try {
+        const parsed = JSON.parse(text);
+        console.log('✅ Successfully parsed JSON:', parsed);
+        return JSON.stringify(parsed, null, 2);
+      } catch (e) {
+        console.warn('⚠️ JSON parse failed:', e);
+      }
+    }
     
     console.log('✅ Successfully decoded UTF-8 text');
     return text;
   } catch (e) {
     console.warn('⚠️ UTF-8 decode failed:', e);
-    // Convert to base64 for safe preview
-    try {
-      console.log('Attempting base64 conversion for preview');
-      const base64 = encodeBase64(bytes);
-      const preview = `[⚠️ Binary data (${bytes.length} bytes): ${base64.slice(0, 32)}...]`;
-      console.log('✅ Created binary preview:', preview);
-      return preview;
-    } catch (e2) {
-      console.error('Base64 encoding failed:', e2);
-      return '[❌ Invalid binary data]';
-    }
+    
+    // Create both hex and base64 representations
+    const hex = Array.from(bytes)
+      .map(b => b.toString(16).padStart(2, '0'))
+      .join(' ');
+    const base64 = encodeBase64(bytes);
+    
+    console.log('🧾 Hex dump:', hex);
+    console.log('📝 Base64:', base64);
+
+    // Return a formatted preview with both representations
+    return `[⚠️ Binary data (${bytes.length} bytes)]\n` +
+           `Base64: ${base64.slice(0, 32)}...\n` +
+           `Hex: ${hex.slice(0, 48)}...`;
   }
 }
 
@@ -113,6 +119,18 @@ function validateEncryptedData(data: EncryptedData): void {
   }
 }
 
+// Add message format versioning
+function encodeMessageWithVersion(message: string): Uint8Array {
+  // Add version prefix to help with future format changes
+  const versionedMessage = JSON.stringify({
+    version: 'v1',
+    text: message,
+    timestamp: new Date().toISOString()
+  });
+  return new TextEncoder().encode(versionedMessage);
+}
+
+// Update the encryptMessage function to use versioning
 export function encryptMessage(message: string, recipientPublicKeyB58: string): EncryptedData {
   try {
     console.log('Encrypting message...');
@@ -132,8 +150,8 @@ export function encryptMessage(message: string, recipientPublicKeyB58: string): 
     // Generate shared key
     const sharedKey = box.before(recipientPublicKey, ephemeralKeypair.secretKey);
 
-    // Encode message as UTF-8
-    const messageBytes = new TextEncoder().encode(message);
+    // Encode message with version
+    const messageBytes = encodeMessageWithVersion(message);
     console.log('Message length:', messageBytes.length);
 
     // Encrypt the message
