@@ -329,6 +329,31 @@ export async function decryptMessage(
     }
   }
 
+  // Method 6: Try using actual wallet public key directly (for very old messages)
+  try {
+    console.log("🔄 Trying Method 6: Direct wallet public key approach (oldest messages)");
+    
+    const nonce = fromBase64(encryptedData.nonce);
+    const ciphertext = fromBase64(encryptedData.ciphertext);
+    const ephemeralPublicKey = fromBase64(encryptedData.ephemeralPublicKey);
+    
+    // Use the actual wallet public key bytes directly
+    const walletPublicKeyBytes = wallet.publicKey.toBytes();
+    console.log("📏 Wallet public key length:", walletPublicKeyBytes.length);
+    
+    // Try direct shared key creation with actual wallet public key
+    const sharedKey = box.before(ephemeralPublicKey, walletPublicKeyBytes);
+    const decryptedBytes = box.open.after(ciphertext, nonce, sharedKey);
+    
+    if (decryptedBytes) {
+      console.log("✅ Method 6 SUCCESS! Decryption with direct wallet public key:", decryptedBytes.length, "bytes");
+      return decryptedBytes;
+    }
+    
+  } catch (error) {
+    console.log("❌ Method 6 error:", error);
+  }
+
   throw new Error("All decryption methods failed. This message may have been encrypted with an incompatible key or is corrupted.");
 }
 
