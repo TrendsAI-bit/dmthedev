@@ -25,7 +25,7 @@ const avatarTiers: AvatarTier[] = [
     color: "text-red-600",
     bgColor: "bg-red-50",
     borderColor: "border-red-500",
-    stickman: "   😰\n  /|\\\n  / \\",
+    stickman: "   ┌|┐\n  /|\\\n  / \\",
     description: "Frail, shaky, sad eyes",
     trait: "Paper hands, no conviction. Sells at first -5% dip then FOMOs back in at +50%."
   },
@@ -47,7 +47,7 @@ const avatarTiers: AvatarTier[] = [
     color: "text-orange-600",
     bgColor: "bg-orange-50",
     borderColor: "border-orange-500",
-    stickman: "   🤪\n  /|\\\n  / \\",
+    stickman: "  ≈o≈\n  /|\\\n  / \\",
     description: "Stickman with crazy hair",
     trait: "Makes gains, loses them all by Monday. Lives for the thrill, dies for the pump."
   },
@@ -58,7 +58,7 @@ const avatarTiers: AvatarTier[] = [
     color: "text-purple-600",
     bgColor: "bg-purple-50",
     borderColor: "border-purple-500",
-    stickman: "   😎\n  💪|💪\n  / \\",
+    stickman: "  [o]\n /|■|\\\n  / \\",
     description: "Sunglasses, buff arms",
     trait: "Wise buyer, sells only at ATH. Diamond hands with steel nerves and 20/20 vision."
   },
@@ -69,7 +69,7 @@ const avatarTiers: AvatarTier[] = [
     color: "text-yellow-600",
     bgColor: "bg-yellow-50",
     borderColor: "border-yellow-500",
-    stickman: "   🧐\n  /|\\\n  / \\",
+    stickman: "  ♔o♔\n  /|\\\n  / \\",
     description: "Top hat, monocle, briefcase",
     trait: "Runs 10 wallets, 3 scripts, 1 burner. Probably your local whale's alt account."
   },
@@ -80,7 +80,7 @@ const avatarTiers: AvatarTier[] = [
     color: "text-green-600",
     bgColor: "bg-green-50",
     borderColor: "border-green-500",
-    stickman: "   🐋\n  /|\\\n  / \\",
+    stickman: "▓▓ o ▓▓\n▓ /|\\ ▓\n▓ / \\ ▓",
     description: "Massive presence, controls markets",
     trait: "When whale moves, markets shake. Probably has a group chat with Vitalik."
   }
