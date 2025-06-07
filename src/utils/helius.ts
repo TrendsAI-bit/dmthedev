@@ -63,10 +63,10 @@ export async function getTokenData(mintAddress: string) {
         });
 
         const searchData = await searchResponse.json();
-        console.log('Search response for creator tokens:', searchData);
+        console.log('Search response for creator tokens:', JSON.stringify(searchData, null, 2));
         
         if (searchData.error) {
-          console.error('Search API error:', searchData.error);
+          console.error('Search API error:', JSON.stringify(searchData.error, null, 2));
           // Try alternative approach using getAssetsByOwner
           const ownerResponse = await fetch(HELIUS_RPC, {
             method: 'POST',
@@ -89,7 +89,7 @@ export async function getTokenData(mintAddress: string) {
           });
           
           const ownerData = await ownerResponse.json();
-          console.log('Owner assets response:', ownerData);
+          console.log('Owner assets response:', JSON.stringify(ownerData, null, 2));
           
           if (ownerData.result && ownerData.result.items) {
             // Filter for tokens that this address created (not just owns)
@@ -97,9 +97,11 @@ export async function getTokenData(mintAddress: string) {
               item.creators && item.creators.some((c: any) => c.address === creator)
             );
             tokensLaunched = createdTokens.length;
+            console.log(`Found ${tokensLaunched} tokens created by ${creator}`);
           }
         } else if (searchData.result && searchData.result.items) {
           tokensLaunched = searchData.result.total || searchData.result.items.length;
+          console.log(`SearchAssets found ${tokensLaunched} tokens for creator ${creator}`);
         }
       } catch (error) {
         console.error('Error fetching creator data:', error);
