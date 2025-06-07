@@ -28,14 +28,43 @@ export async function getTokenData(mintAddress: string) {
 
     const creator = assetData.result?.creators?.[0]?.address;
     
-    // If we have a creator, fetch their SOL balance
+    // If we have a creator, fetch their SOL balance and token count
     let creatorSolBalance = null;
+    let tokensLaunched = null;
+    
     if (creator) {
       try {
+        // Fetch SOL balance
         const balance = await connection.getBalance(new PublicKey(creator));
         creatorSolBalance = balance / LAMPORTS_PER_SOL;
+
+        // Fetch total tokens launched by this creator
+        const searchResponse = await fetch(HELIUS_RPC, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            jsonrpc: '2.0',
+            id: 'search-assets',
+            method: 'searchAssets',
+            params: {
+              creatorAddress: creator,
+              page: 1,
+              limit: 1000, // Get up to 1000 tokens to count them
+              displayOptions: {
+                showNativeBalance: false
+              }
+            },
+          }),
+        });
+
+        const searchData = await searchResponse.json();
+        if (searchData.result && searchData.result.items) {
+          tokensLaunched = searchData.result.total || searchData.result.items.length;
+        }
       } catch (error) {
-        console.error('Error fetching creator balance:', error);
+        console.error('Error fetching creator data:', error);
       }
     }
 
@@ -57,6 +86,7 @@ export async function getTokenData(mintAddress: string) {
       data: assetData.result,
       creator: creator || null,
       creatorSolBalance,
+      tokensLaunched,
       name: assetData.result?.content?.metadata?.name || 'Unknown Token',
       symbol: assetData.result?.content?.metadata?.symbol || '???',
       marketCap,
@@ -69,6 +99,7 @@ export async function getTokenData(mintAddress: string) {
       data: null,
       creator: null,
       creatorSolBalance: null,
+      tokensLaunched: null,
       name: null,
       symbol: null,
       marketCap: null,

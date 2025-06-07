@@ -39,6 +39,7 @@ export default function Home() {
     error?: string;
     marketCap?: number | null;
     creatorSolBalance?: number | null;
+    tokensLaunched?: number | null;
   } | null>(null);
   const [recipientKey, setRecipientKey] = useState<string>('');
   const [isDerivedKeyReady, setIsDerivedKeyReady] = useState(false);
@@ -92,6 +93,7 @@ export default function Home() {
           symbol: result.symbol || '???',
           marketCap: result.marketCap,
           creatorSolBalance: result.creatorSolBalance,
+          tokensLaunched: result.tokensLaunched,
         });
       } else {
         setDeployerInfo({
@@ -100,6 +102,7 @@ export default function Home() {
           name: 'Unknown',
           symbol: '???',
           error: result.error || 'Could not find token information',
+          tokensLaunched: null,
         });
       }
     } catch (error) {
@@ -110,6 +113,7 @@ export default function Home() {
         name: 'Error',
         symbol: '???',
         error: 'Failed to fetch token information',
+        tokensLaunched: null,
       });
     } finally {
       setIsLoading(false);
@@ -644,6 +648,20 @@ export default function Home() {
                         <div className="flex-1">
                           <div><strong>Token:</strong> {deployerInfo.name} ({deployerInfo.symbol})</div>
                           <div><strong>Deployer:</strong> {deployerInfo.address}</div>
+                          {typeof deployerInfo.tokensLaunched === 'number' && (
+                            <div>
+                              <strong>Tokens Launched:</strong> {deployerInfo.tokensLaunched} {deployerInfo.tokensLaunched === 1 ? 'token' : 'tokens'}
+                              {deployerInfo.tokensLaunched === 1 && (
+                                <span className="text-green-600 font-bold"> 🌟 (First-timer!)</span>
+                              )}
+                              {deployerInfo.tokensLaunched > 50 && (
+                                <span className="text-orange-600 font-bold"> 🚨 (Serial launcher!)</span>
+                              )}
+                              {deployerInfo.tokensLaunched > 10 && deployerInfo.tokensLaunched <= 50 && (
+                                <span className="text-blue-600 font-bold"> 🎯 (Experienced)</span>
+                              )}
+                            </div>
+                          )}
                           {typeof deployerInfo.creatorSolBalance === 'number' && (
                             <div><strong>Deployer SOL Balance:</strong> {deployerInfo.creatorSolBalance.toFixed(2)} SOL</div>
                           )}
