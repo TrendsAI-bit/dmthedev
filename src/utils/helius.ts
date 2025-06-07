@@ -50,17 +50,55 @@ export async function getTokenData(mintAddress: string) {
             method: 'searchAssets',
             params: {
               creatorAddress: creator,
+              grouping: ["collection", "collection"],
               page: 1,
-              limit: 1000, // Get up to 1000 tokens to count them
+              limit: 1000,
               displayOptions: {
-                showNativeBalance: false
+                showNativeBalance: false,
+                showInscription: false,
+                showCollectionMetadata: false
               }
             },
           }),
         });
 
         const searchData = await searchResponse.json();
-        if (searchData.result && searchData.result.items) {
+        console.log('Search response for creator tokens:', searchData);
+        
+        if (searchData.error) {
+          console.error('Search API error:', searchData.error);
+          // Try alternative approach using getAssetsByOwner
+          const ownerResponse = await fetch(HELIUS_RPC, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              jsonrpc: '2.0',
+              id: 'get-assets-by-owner',
+              method: 'getAssetsByOwner',
+              params: {
+                ownerAddress: creator,
+                page: 1,
+                limit: 1000,
+                displayOptions: {
+                  showNativeBalance: false
+                }
+              },
+            }),
+          });
+          
+          const ownerData = await ownerResponse.json();
+          console.log('Owner assets response:', ownerData);
+          
+          if (ownerData.result && ownerData.result.items) {
+            // Filter for tokens that this address created (not just owns)
+            const createdTokens = ownerData.result.items.filter((item: any) => 
+              item.creators && item.creators.some((c: any) => c.address === creator)
+            );
+            tokensLaunched = createdTokens.length;
+          }
+        } else if (searchData.result && searchData.result.items) {
           tokensLaunched = searchData.result.total || searchData.result.items.length;
         }
       } catch (error) {
