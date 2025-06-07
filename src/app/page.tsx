@@ -490,15 +490,15 @@ export default function Home() {
           
           {/* Individual Cards Container */}
           <div className="max-w-7xl mx-auto px-4">
-            <div className="grid lg:grid-cols-4 md:grid-cols-2 grid-cols-1 gap-12 lg:gap-16">
+            <div className="grid lg:grid-cols-4 md:grid-cols-2 grid-cols-1 gap-6">
               
               {/* Step 1 - Completely Independent Card */}
               <div className="flex justify-center">
-                <div className="bg-white border-4 border-black rounded-2xl p-6 w-full max-w-xs transform transition-all duration-500 ease-in-out hover:scale-125 hover:z-50 hover:shadow-[0_30px_70px_rgba(0,0,0,0.5)] hover:-translate-y-8 hover:rotate-3 cursor-pointer animate-float" style={{animationDelay: '0s'}}>
+                <div className="bg-white border-4 border-black rounded-2xl p-6 w-full max-w-sm transform transition-all duration-500 ease-in-out hover:scale-110 hover:z-50 hover:shadow-[0_25px_60px_rgba(0,0,0,0.4)] hover:-translate-y-6 hover:rotate-2 cursor-pointer animate-float" style={{animationDelay: '0s'}}>
                   <div className="text-center">
                     <div className="bg-gray-100 border-2 border-black rounded-lg p-4 mb-4">
-                      <div className="text-lg font-bold mb-3">1. Find Token Deployer</div>
-                      <div className="font-mono text-xl whitespace-pre mb-3 hover:animate-bounce hover:text-blue-600 hover:scale-125 transition-all duration-300 cursor-pointer">{'   o\n  /|\\\n  / \\'}</div>
+                      <div className="text-xl font-bold mb-3">1. Find Token Deployer</div>
+                      <div className="font-mono text-2xl whitespace-pre mb-3 hover:animate-bounce hover:text-blue-600 hover:scale-125 transition-all duration-300 cursor-pointer">{'   o\n  /|\\\n  / \\'}</div>
                       <div className="bg-white border-2 border-black rounded-full p-2 relative">
                         <div className="text-xs font-bold">"I want to contact the dev of $MOON!"</div>
                         <div className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-black"></div>
@@ -519,11 +519,11 @@ export default function Home() {
 
               {/* Step 2 - Completely Independent Card */}
               <div className="flex justify-center">
-                <div className="bg-white border-4 border-black rounded-2xl p-6 w-full max-w-xs transform transition-all duration-500 ease-in-out hover:scale-125 hover:z-50 hover:shadow-[0_30px_70px_rgba(0,0,0,0.5)] hover:-translate-y-8 hover:-rotate-3 cursor-pointer animate-float" style={{animationDelay: '0.1s'}}>
+                <div className="bg-white border-4 border-black rounded-2xl p-6 w-full max-w-sm transform transition-all duration-500 ease-in-out hover:scale-110 hover:z-50 hover:shadow-[0_25px_60px_rgba(0,0,0,0.4)] hover:-translate-y-6 hover:-rotate-2 cursor-pointer animate-float" style={{animationDelay: '0.1s'}}>
                   <div className="text-center">
                     <div className="bg-gray-100 border-2 border-black rounded-lg p-4 mb-4">
-                      <div className="text-lg font-bold mb-3">2. Send Anonymous Message</div>
-                      <div className="font-mono text-xl whitespace-pre mb-3 hover:animate-pulse hover:text-yellow-600 hover:rotate-12 transition-all duration-300 cursor-pointer">{'   o\n  /|\\\n  / \\'}</div>
+                      <div className="text-xl font-bold mb-3">2. Send Anonymous Message</div>
+                      <div className="font-mono text-2xl whitespace-pre mb-3 hover:animate-pulse hover:text-yellow-600 hover:rotate-12 transition-all duration-300 cursor-pointer">{'   o\n  /|\\\n  / \\'}</div>
                       <div className="bg-white border-2 border-black rounded-full p-2 relative">
                         <div className="text-xs font-bold">"Wen moon? Love the project!"</div>
                         <div className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-black"></div>
@@ -545,11 +545,11 @@ export default function Home() {
 
               {/* Step 3 - Completely Independent Card */}
               <div className="flex justify-center">
-                <div className="bg-white border-4 border-black rounded-2xl p-6 w-full max-w-xs transform transition-all duration-500 ease-in-out hover:scale-125 hover:z-50 hover:shadow-[0_30px_70px_rgba(0,0,0,0.5)] hover:-translate-y-8 hover:rotate-2 cursor-pointer animate-float" style={{animationDelay: '0.2s'}}>
+                <div className="bg-white border-4 border-black rounded-2xl p-6 w-full max-w-sm transform transition-all duration-500 ease-in-out hover:scale-110 hover:z-50 hover:shadow-[0_25px_60px_rgba(0,0,0,0.4)] hover:-translate-y-6 hover:rotate-3 cursor-pointer animate-float" style={{animationDelay: '0.2s'}}>
                   <div className="text-center">
                     <div className="bg-gray-100 border-2 border-black rounded-lg p-4 mb-4">
-                      <div className="text-lg font-bold mb-3">3. Deployer Gets Notification</div>
-                      <div className="font-mono text-xl whitespace-pre mb-3 text-red-500 hover:animate-spin hover:text-orange-500 hover:scale-110 transition-all duration-500 cursor-pointer">{'   o\n  /|\\\n  / \\'}</div>
+                      <div className="text-xl font-bold mb-3">3. Deployer Gets Notification</div>
+                      <div className="font-mono text-2xl whitespace-pre mb-3 text-red-500 hover:animate-spin hover:text-orange-500 hover:scale-110 transition-all duration-500 cursor-pointer">{'   o\n  /|\\\n  / \\'}</div>
                       <div className="bg-white border-2 border-black rounded-full p-2 relative">
                         <div className="text-xs font-bold">"Huh? I got a DM?"</div>
                         <div className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-black"></div>
@@ -570,11 +570,11 @@ export default function Home() {
 
               {/* Step 4 - Completely Independent Card */}
               <div className="flex justify-center">
-                <div className="bg-white border-4 border-black rounded-2xl p-6 w-full max-w-xs transform transition-all duration-500 ease-in-out hover:scale-125 hover:z-50 hover:shadow-[0_30px_70px_rgba(0,0,0,0.5)] hover:-translate-y-8 hover:-rotate-2 cursor-pointer animate-float" style={{animationDelay: '0.3s'}}>
+                <div className="bg-white border-4 border-black rounded-2xl p-6 w-full max-w-sm transform transition-all duration-500 ease-in-out hover:scale-110 hover:z-50 hover:shadow-[0_25px_60px_rgba(0,0,0,0.4)] hover:-translate-y-6 hover:-rotate-1 cursor-pointer animate-float" style={{animationDelay: '0.3s'}}>
                   <div className="text-center">
                     <div className="bg-gray-100 border-2 border-black rounded-lg p-4 mb-4">
-                      <div className="text-lg font-bold mb-3">4. Decrypt & Read</div>
-                      <div className="font-mono text-xl whitespace-pre mb-3 text-green-600 hover:animate-bounce hover:text-green-400 hover:scale-150 hover:-rotate-6 transition-all duration-300 cursor-pointer">{'   ☻\n  /|\\\n  / \\'}</div>
+                      <div className="text-xl font-bold mb-3">4. Decrypt & Read</div>
+                      <div className="font-mono text-2xl whitespace-pre mb-3 text-green-600 hover:animate-bounce hover:text-green-400 hover:scale-150 hover:-rotate-6 transition-all duration-300 cursor-pointer">{'   ☻\n  /|\\\n  / \\'}</div>
                       <div className="bg-white border-2 border-black rounded-full p-2 relative">
                         <div className="text-xs font-bold">"Cool! A fan message!"</div>
                         <div className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-black"></div>
