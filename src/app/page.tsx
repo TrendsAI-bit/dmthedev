@@ -420,6 +420,12 @@ export default function Home() {
             DM the DEV ✎
           </div>
           <div className="flex items-center gap-4">
+            <button 
+              onClick={() => document.getElementById('token-lookup')?.scrollIntoView({ behavior: 'smooth' })}
+              className="bg-green-400 text-black border-3 border-black py-2 px-4 font-bold rounded-xl rotate-1 hover:rotate-3 hover:scale-110 transition-all duration-300 interactive-btn"
+            >
+              🚀 Start Using
+            </button>
             <a 
               href="https://x.com/DMthedevs" 
               target="_blank" 
@@ -453,7 +459,7 @@ export default function Home() {
             <div className="text-center p-6 border-3 border-black rounded-xl bg-white transform hover:scale-105 transition-all duration-300 animate-float relative" style={{animationDelay: '0s'}}>
               <div className="border-2 border-black rounded-lg p-2 mb-4 bg-gray-50">
                 <div className="text-xl font-bold mb-2">1. Find Token Deployer</div>
-                <div className="font-mono text-2xl whitespace-pre mb-3">{'   o\n  /|\\\n  / \\'}</div>
+                <div className="font-mono text-2xl whitespace-pre mb-3 hover:animate-bounce hover:text-blue-600 hover:scale-125 transition-all duration-300 cursor-pointer">{'   o\n  /|\\\n  / \\'}</div>
                 <div className="bg-white border-2 border-black rounded-full p-2 relative">
                   <div className="text-xs font-bold">"I want to contact the dev of $MOON!"</div>
                   <div className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-black"></div>
@@ -474,7 +480,7 @@ export default function Home() {
             <div className="text-center p-6 border-3 border-black rounded-xl bg-white transform hover:scale-105 transition-all duration-300 animate-float relative" style={{animationDelay: '0.1s'}}>
               <div className="border-2 border-black rounded-lg p-2 mb-4 bg-gray-50">
                 <div className="text-xl font-bold mb-2">2. Send Anonymous Message</div>
-                <div className="font-mono text-2xl whitespace-pre mb-3">{'   o\n  /|\\\n  / \\'}</div>
+                <div className="font-mono text-2xl whitespace-pre mb-3 hover:animate-pulse hover:text-yellow-600 hover:rotate-12 transition-all duration-300 cursor-pointer">{'   o\n  /|\\\n  / \\'}</div>
                 <div className="bg-white border-2 border-black rounded-full p-2 relative">
                   <div className="text-xs font-bold">"Wen moon? Love the project!"</div>
                   <div className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-black"></div>
@@ -496,7 +502,7 @@ export default function Home() {
             <div className="text-center p-6 border-3 border-black rounded-xl bg-white transform hover:scale-105 transition-all duration-300 animate-float relative" style={{animationDelay: '0.2s'}}>
               <div className="border-2 border-black rounded-lg p-2 mb-4 bg-gray-50">
                 <div className="text-xl font-bold mb-2">3. Deployer Gets Notification</div>
-                <div className="font-mono text-2xl whitespace-pre mb-3 text-red-500">{'   o\n  /|\\\n  / \\'}</div>
+                <div className="font-mono text-2xl whitespace-pre mb-3 text-red-500 hover:animate-spin hover:text-orange-500 hover:scale-110 transition-all duration-500 cursor-pointer">{'   o\n  /|\\\n  / \\'}</div>
                 <div className="bg-white border-2 border-black rounded-full p-2 relative">
                   <div className="text-xs font-bold">"Huh? I got a DM?"</div>
                   <div className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-black"></div>
@@ -517,7 +523,7 @@ export default function Home() {
             <div className="text-center p-6 border-3 border-black rounded-xl bg-white transform hover:scale-105 transition-all duration-300 animate-float relative" style={{animationDelay: '0.3s'}}>
               <div className="border-2 border-black rounded-lg p-2 mb-4 bg-gray-50">
                 <div className="text-xl font-bold mb-2">4. Decrypt & Read</div>
-                <div className="font-mono text-2xl whitespace-pre mb-3 text-green-600">{'   ☻\n  /|\\\n  / \\'}</div>
+                <div className="font-mono text-2xl whitespace-pre mb-3 text-green-600 hover:animate-bounce hover:text-green-400 hover:scale-150 hover:-rotate-6 transition-all duration-300 cursor-pointer">{'   ☻\n  /|\\\n  / \\'}</div>
                 <div className="bg-white border-2 border-black rounded-full p-2 relative">
                   <div className="text-xs font-bold">"Cool! A fan message!"</div>
                   <div className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-black"></div>
@@ -551,7 +557,7 @@ export default function Home() {
         <ClientOnly>
           <>
             {/* Token Lookup */}
-            <section className="section">
+            <section className="section" id="token-lookup">
               <h2 className="section-title">[🔍] Token Lookup</h2>
               <div className="space-y-4">
                 <input
@@ -873,35 +879,35 @@ export default function Home() {
 
           {/* Roadmap - Timeline with stickmen */}
           <div className="bg-white/10 border-3 border-white rounded-xl p-8 mb-16 transform hover:rotate-1 transition-all duration-300">
-            <h3 className="text-3xl font-bold mb-8 text-center text-purple-400">🗺️ The Roadmap (If We Don't Rug)</h3>
+            <h3 className="text-3xl font-bold mb-8 text-center text-purple-400">🗺️ The Roadmap Ahead</h3>
             <div className="grid md:grid-cols-3 gap-8">
-              {/* Q4 2024 */}
+              {/* Q2 2025 */}
               <div className="text-center">
                 <div className="font-mono text-3xl whitespace-pre text-blue-400 mb-3">{'   🚀\n  /|\\\n  / \\'}</div>
                 <div className="bg-blue-400/20 border-2 border-blue-400 rounded-lg p-4">
-                  <div className="font-bold text-blue-400 mb-2">Q4 2024: "The Launch"</div>
+                  <div className="font-bold text-blue-400 mb-2">Q2 2025: "The Launch"</div>
                   <div className="text-xs text-gray-300">
                     Platform launch • pump.fun token • Basic messaging • Solana integration
                   </div>
                 </div>
               </div>
 
-              {/* Q1 2025 */}
+              {/* Q3 2025 */}
               <div className="text-center">
                 <div className="font-mono text-3xl whitespace-pre text-green-400 mb-3">{'   👥\n  /|\\\n  / \\'}</div>
                 <div className="bg-green-400/20 border-2 border-green-400 rounded-lg p-4">
-                  <div className="font-bold text-green-400 mb-2">Q1 2025: "The Expansion"</div>
+                  <div className="font-bold text-green-400 mb-2">Q3 2025: "The Expansion"</div>
                   <div className="text-xs text-gray-300">
                     Group messaging • Dev verification • Mobile app beta • More features
                   </div>
                 </div>
               </div>
 
-              {/* Q2 2025 */}
+              {/* Q4 2025 */}
               <div className="text-center">
                 <div className="font-mono text-3xl whitespace-pre text-purple-400 mb-3">{'   🌍\n  /|\\\n  / \\'}</div>
                 <div className="bg-purple-400/20 border-2 border-purple-400 rounded-lg p-4">
-                  <div className="font-bold text-purple-400 mb-2">Q2 2025: "World Domination"</div>
+                  <div className="font-bold text-purple-400 mb-2">Q4 2025: "World Domination"</div>
                   <div className="text-xs text-gray-300">
                     Cross-chain • DAO governance • Developer bounties • Moon mission
                   </div>
@@ -947,11 +953,11 @@ export default function Home() {
               <div className="font-mono text-2xl whitespace-pre">{'   ⚠️\n  /|\\\n  / \\'}</div>
             </div>
             <p className="mb-2">
-              <strong>Disclaimer:</strong> $DMDEV might moon or might rug. DYOR, we're just building cool stuff. 
-              Not financial advice, just vibes and encrypted messages.
+              <strong>Disclaimer:</strong> $DMDEV is a utility token for the DM the DEV platform. 
+              DYOR and invest responsibly. Not financial advice, just building cool encrypted messaging tech.
             </p>
             <p className="text-gray-500">
-              Built with ❤️ and too much caffeine • Powered by pump.fun • Secured by actual cryptography (not just hype)
+              Built with ❤️ and too much caffeine • Powered by pump.fun • Secured by actual cryptography
             </p>
           </div>
         </div>
