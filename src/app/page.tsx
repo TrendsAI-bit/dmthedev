@@ -39,7 +39,6 @@ export default function Home() {
     error?: string;
     marketCap?: number | null;
     creatorSolBalance?: number | null;
-    tokensLaunched?: number | null;
   } | null>(null);
   const [recipientKey, setRecipientKey] = useState<string>('');
   const [isDerivedKeyReady, setIsDerivedKeyReady] = useState(false);
@@ -75,14 +74,6 @@ export default function Home() {
 
   const [currentMascotMessage, setCurrentMascotMessage] = useState(0);
 
-  // Helper function to get deployer tier based on token count
-  const getDeployerTier = (mintCount: number) => {
-    if (mintCount === 0) return { label: "🟢 Clean", color: "text-green-600" };
-    if (mintCount < 3) return { label: "🟡 Trusted", color: "text-yellow-600" };
-    if (mintCount < 6) return { label: "🟠 Sus", color: "text-orange-600" };
-    return { label: "🔴 Deployer Spammer", color: "text-red-600" };
-  };
-
   const handleFindDeployer = async () => {
     if (!tokenAddress) return;
     
@@ -101,7 +92,6 @@ export default function Home() {
           symbol: result.symbol || '???',
           marketCap: result.marketCap,
           creatorSolBalance: result.creatorSolBalance,
-          tokensLaunched: result.tokensLaunched,
         });
       } else {
         setDeployerInfo({
@@ -110,7 +100,6 @@ export default function Home() {
           name: 'Unknown',
           symbol: '???',
           error: result.error || 'Could not find token information',
-          tokensLaunched: null,
         });
       }
     } catch (error) {
@@ -121,7 +110,6 @@ export default function Home() {
         name: 'Error',
         symbol: '???',
         error: 'Failed to fetch token information',
-        tokensLaunched: null,
       });
     } finally {
       setIsLoading(false);
@@ -656,15 +644,6 @@ export default function Home() {
                         <div className="flex-1">
                           <div><strong>Token:</strong> {deployerInfo.name} ({deployerInfo.symbol})</div>
                           <div><strong>Deployer:</strong> {deployerInfo.address}</div>
-                          {typeof deployerInfo.tokensLaunched === 'number' && (
-                            <div>
-                              <strong>Tokens Launched:</strong> {deployerInfo.tokensLaunched} {deployerInfo.tokensLaunched === 1 ? 'token' : 'tokens'}
-                              {(() => {
-                                const tier = getDeployerTier(deployerInfo.tokensLaunched);
-                                return <span className={`font-bold ml-2 ${tier.color}`}>({tier.label})</span>;
-                              })()}
-                            </div>
-                          )}
                           {typeof deployerInfo.creatorSolBalance === 'number' && (
                             <div><strong>Deployer SOL Balance:</strong> {deployerInfo.creatorSolBalance.toFixed(2)} SOL</div>
                           )}

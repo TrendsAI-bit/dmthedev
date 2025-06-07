@@ -31,44 +31,16 @@ export async function getTokenData(mintAddress: string) {
 
     const creator = assetData.result?.creators?.[0]?.address;
     
-    // If we have a creator, fetch their SOL balance and token count
+    // If we have a creator, fetch their SOL balance
     let creatorSolBalance = null;
-    let tokensLaunched = null;
     
     if (creator) {
       try {
         // Fetch SOL balance
         const balance = await connection.getBalance(new PublicKey(creator));
         creatorSolBalance = balance / LAMPORTS_PER_SOL;
-
-        // Use Helius transactions API to count token mints (initializeMint instructions)
-        const transactionsResponse = await fetch(`https://api.helius.xyz/v0/addresses/${creator}/transactions?api-key=7c8a804a-bb84-4963-b03b-421a5d39c887&limit=1000&type=ALL`);
-        
-        if (transactionsResponse.ok) {
-          const transactionsData = await transactionsResponse.json();
-          
-          let mintCount = 0;
-          
-          if (Array.isArray(transactionsData)) {
-            transactionsData.forEach((tx: any) => {
-              tx?.instructions?.forEach((ix: any) => {
-                if (
-                  ix.programId === "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA" &&
-                  ix.parsed?.type === "initializeMint"
-                ) {
-                  mintCount++;
-                }
-              });
-            });
-          }
-          
-          tokensLaunched = mintCount;
-          console.log(`Found ${tokensLaunched} token mints by ${creator}`);
-        } else {
-          console.error('Failed to fetch transactions:', transactionsResponse.status);
-        }
       } catch (error) {
-        console.error('Error fetching creator data:', error);
+        console.error('Error fetching creator balance:', error);
       }
     }
 
@@ -95,7 +67,6 @@ export async function getTokenData(mintAddress: string) {
       data: assetData.result,
       creator: creator || null,
       creatorSolBalance,
-      tokensLaunched,
       name: assetData.result?.content?.metadata?.name || 'Unknown Token',
       symbol: assetData.result?.content?.metadata?.symbol || '???',
       marketCap,
@@ -108,7 +79,6 @@ export async function getTokenData(mintAddress: string) {
       data: null,
       creator: null,
       creatorSolBalance: null,
-      tokensLaunched: null,
       name: null,
       symbol: null,
       marketCap: null,
