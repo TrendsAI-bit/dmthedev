@@ -490,7 +490,7 @@ export default function Home() {
           <div className="max-w-7xl mx-auto">
             <div className="grid lg:grid-cols-4 md:grid-cols-2 grid-cols-1 gap-6 mb-8">
               {/* Step 1 */}
-              <div className="text-center p-6 border-3 border-black rounded-xl bg-white transform hover:scale-105 transition-all duration-300 animate-float relative mx-auto w-full max-w-sm" style={{animationDelay: '0s'}}>
+              <div className="text-center p-6 border-3 border-black rounded-xl bg-white transform transition-all duration-500 ease-in-out animate-float relative mx-auto w-full max-w-sm hover:scale-125 hover:z-50 hover:shadow-[0_20px_50px_rgba(0,0,0,0.3)] hover:-translate-y-4 hover:rotate-2 cursor-pointer" style={{animationDelay: '0s'}}>
                 <div className="border-2 border-black rounded-lg p-2 mb-4 bg-gray-50">
                   <div className="text-xl font-bold mb-2">1. Find Token Deployer</div>
                   <div className="font-mono text-2xl whitespace-pre mb-3 hover:animate-bounce hover:text-blue-600 hover:scale-125 transition-all duration-300 cursor-pointer">{'   o\n  /|\\\n  / \\'}</div>
@@ -511,7 +511,7 @@ export default function Home() {
               </div>
 
               {/* Step 2 */}
-              <div className="text-center p-6 border-3 border-black rounded-xl bg-white transform hover:scale-105 transition-all duration-300 animate-float relative mx-auto w-full max-w-sm" style={{animationDelay: '0.1s'}}>
+              <div className="text-center p-6 border-3 border-black rounded-xl bg-white transform transition-all duration-500 ease-in-out animate-float relative mx-auto w-full max-w-sm hover:scale-125 hover:z-50 hover:shadow-[0_20px_50px_rgba(0,0,0,0.3)] hover:-translate-y-4 hover:-rotate-2 cursor-pointer" style={{animationDelay: '0.1s'}}>
                 <div className="border-2 border-black rounded-lg p-2 mb-4 bg-gray-50">
                   <div className="text-xl font-bold mb-2">2. Send Anonymous Message</div>
                   <div className="font-mono text-2xl whitespace-pre mb-3 hover:animate-pulse hover:text-yellow-600 hover:rotate-12 transition-all duration-300 cursor-pointer">{'   o\n  /|\\\n  / \\'}</div>
@@ -533,7 +533,7 @@ export default function Home() {
               </div>
 
               {/* Step 3 */}
-              <div className="text-center p-6 border-3 border-black rounded-xl bg-white transform hover:scale-105 transition-all duration-300 animate-float relative mx-auto w-full max-w-sm" style={{animationDelay: '0.2s'}}>
+              <div className="text-center p-6 border-3 border-black rounded-xl bg-white transform transition-all duration-500 ease-in-out animate-float relative mx-auto w-full max-w-sm hover:scale-125 hover:z-50 hover:shadow-[0_20px_50px_rgba(0,0,0,0.3)] hover:-translate-y-4 hover:rotate-3 cursor-pointer" style={{animationDelay: '0.2s'}}>
                 <div className="border-2 border-black rounded-lg p-2 mb-4 bg-gray-50">
                   <div className="text-xl font-bold mb-2">3. Deployer Gets Notification</div>
                   <div className="font-mono text-2xl whitespace-pre mb-3 text-red-500 hover:animate-spin hover:text-orange-500 hover:scale-110 transition-all duration-500 cursor-pointer">{'   o\n  /|\\\n  / \\'}</div>
@@ -554,7 +554,7 @@ export default function Home() {
               </div>
 
               {/* Step 4 */}
-              <div className="text-center p-6 border-3 border-black rounded-xl bg-white transform hover:scale-105 transition-all duration-300 animate-float relative mx-auto w-full max-w-sm" style={{animationDelay: '0.3s'}}>
+              <div className="text-center p-6 border-3 border-black rounded-xl bg-white transform transition-all duration-500 ease-in-out animate-float relative mx-auto w-full max-w-sm hover:scale-125 hover:z-50 hover:shadow-[0_20px_50px_rgba(0,0,0,0.3)] hover:-translate-y-4 hover:-rotate-1 cursor-pointer" style={{animationDelay: '0.3s'}}>
                 <div className="border-2 border-black rounded-lg p-2 mb-4 bg-gray-50">
                   <div className="text-xl font-bold mb-2">4. Decrypt & Read</div>
                   <div className="font-mono text-2xl whitespace-pre mb-3 text-green-600 hover:animate-bounce hover:text-green-400 hover:scale-150 hover:-rotate-6 transition-all duration-300 cursor-pointer">{'   ☻\n  /|\\\n  / \\'}</div>
@@ -838,7 +838,7 @@ export default function Home() {
                               className="w-full mt-2 py-2 px-4 border-2 border-black rounded-lg bg-white hover:bg-gray-50 transition-colors interactive-btn"
                               disabled={!connected}
                             >
-                              {connected ? '�� Decrypt Message' : '🔒 Connect Wallet to Decrypt'}
+                              {connected ? 'Decrypt Message' : '🔒 Connect Wallet to Decrypt'}
                             </button>
                           )}
                         </div>
