@@ -808,116 +808,117 @@ export default function Home() {
         <div className="max-w-7xl mx-auto p-5">
           <section className="mb-16">
             <h2 className="text-5xl font-bold text-center mb-10 rotate-1 animate-wiggle-slow">
-              📄 DM the DEV Whitepaper
+              📋 The $DMDEV Doodle Paper
             </h2>
             <div className="text-center mb-12 text-gray-300">
-              <p className="text-xl mb-4">The Future of Anonymous Developer Communication on Solana</p>
-              <p className="text-sm">Version 1.0 • Launch on pump.fun</p>
+              <p className="text-xl mb-4">Anonymous DEV Messages Go BRRR on Solana 🚀</p>
+              <p className="text-sm">Version 1.0 • Launching on pump.fun because we're degens</p>
             </div>
           </section>
 
-          <div className="grid lg:grid-cols-2 gap-12">
-            {/* Problem & Solution */}
-            <div className="bg-white/10 border-2 border-white/20 rounded-xl p-6 transform hover:scale-105 transition-all duration-300">
-              <h3 className="text-2xl font-bold mb-4 text-yellow-400">🎯 The Problem</h3>
-              <ul className="space-y-2 text-gray-300 mb-6">
-                <li>• Token deployers are hard to reach directly</li>
-                <li>• No secure way to send anonymous feedback</li>
-                <li>• Community suggestions get lost in noise</li>
-                <li>• Doxxing risks when contacting developers</li>
-              </ul>
-              
-              <h3 className="text-2xl font-bold mb-4 text-green-400">✨ Our Solution</h3>
-              <ul className="space-y-2 text-gray-300">
-                <li>• End-to-end encrypted messaging system</li>
-                <li>• Complete anonymity for senders</li>
-                <li>• Direct access to any token deployer</li>
-                <li>• Built on Solana for speed & security</li>
-              </ul>
-            </div>
-
-            {/* Technical Architecture */}
-            <div className="bg-white/10 border-2 border-white/20 rounded-xl p-6 transform hover:scale-105 transition-all duration-300">
-              <h3 className="text-2xl font-bold mb-4 text-blue-400">🔧 Technical Architecture</h3>
-              <div className="space-y-3 text-gray-300">
-                <div>
-                  <strong className="text-white">Encryption:</strong> Signature-derived keys using NaCl TweetNaCl
-                </div>
-                <div>
-                  <strong className="text-white">Blockchain:</strong> Solana for wallet integration & verification
-                </div>
-                <div>
-                  <strong className="text-white">Storage:</strong> Encrypted messages stored off-chain
-                </div>
-                <div>
-                  <strong className="text-white">Privacy:</strong> Zero personal information required
-                </div>
-                <div>
-                  <strong className="text-white">UI/UX:</strong> Web3-native with animated interactions
+          <div className="grid lg:grid-cols-3 gap-12 mb-16">
+            {/* The Problem - Stickman crying */}
+            <div className="bg-white/10 border-3 border-white rounded-xl p-6 transform hover:scale-105 transition-all duration-300">
+              <div className="text-center mb-6">
+                <div className="font-mono text-4xl whitespace-pre text-red-400 mb-4">{'   😭\n  /|\\\n  / \\'}</div>
+                <div className="bg-white/20 border-2 border-white rounded-full p-3 relative">
+                  <div className="text-sm font-bold">"Can't reach any devs! Rug incoming?"</div>
+                  <div className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-white"></div>
                 </div>
               </div>
+              <h3 className="text-2xl font-bold mb-4 text-red-400">😤 The Problem</h3>
+              <ul className="space-y-2 text-gray-300 text-sm">
+                <li>• Devs harder to find than Satoshi</li>
+                <li>• Community feedback = void screaming</li>
+                <li>• Anonymous tips? Impossible!</li>
+                <li>• Doxxing yourself just to say "wen moon?"</li>
+              </ul>
             </div>
 
-            {/* Tokenomics */}
-            <div className="bg-white/10 border-2 border-white/20 rounded-xl p-6 transform hover:scale-105 transition-all duration-300">
-              <h3 className="text-2xl font-bold mb-4 text-purple-400">💎 $DMDEV Tokenomics</h3>
-              <div className="space-y-3 text-gray-300">
-                <div>
-                  <strong className="text-white">Total Supply:</strong> 1,000,000,000 DMDEV
-                </div>
-                <div>
-                  <strong className="text-white">Launch Platform:</strong> pump.fun
-                </div>
-                <div>
-                  <strong className="text-white">Use Cases:</strong>
-                  <ul className="ml-4 mt-2 space-y-1">
-                    <li>• Premium messaging features</li>
-                    <li>• Governance voting rights</li>
-                    <li>• Developer incentives</li>
-                    <li>• Platform revenue sharing</li>
-                  </ul>
+            {/* Our Solution - Happy stickman */}
+            <div className="bg-white/10 border-3 border-white rounded-xl p-6 transform hover:scale-105 transition-all duration-300">
+              <div className="text-center mb-6">
+                <div className="font-mono text-4xl whitespace-pre text-green-400 mb-4">{'   😎\n  /|\\\n  / \\'}</div>
+                <div className="bg-white/20 border-2 border-white rounded-full p-3 relative">
+                  <div className="text-sm font-bold">"DMing devs anonymously? BASED!"</div>
+                  <div className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-white"></div>
                 </div>
               </div>
+              <h3 className="text-2xl font-bold mb-4 text-green-400">💡 Our Solution</h3>
+              <ul className="space-y-2 text-gray-300 text-sm">
+                <li>• Military-grade encryption (actually works)</li>
+                <li>• Full anon mode activated</li>
+                <li>• Direct access to any token dev</li>
+                <li>• Built on Solana (because fees matter)</li>
+              </ul>
             </div>
 
-            {/* Roadmap */}
-            <div className="bg-white/10 border-2 border-white/20 rounded-xl p-6 transform hover:scale-105 transition-all duration-300">
-              <h3 className="text-2xl font-bold mb-4 text-red-400">🗺️ Roadmap 2024-2025</h3>
-              <div className="space-y-3 text-gray-300">
-                <div>
-                  <strong className="text-green-400">Q4 2024:</strong> 
-                  <ul className="ml-4 mt-1 space-y-1">
-                    <li>• Platform launch & pump.fun token</li>
-                    <li>• Basic encrypted messaging</li>
-                    <li>• Solana wallet integration</li>
-                  </ul>
+            {/* Tokenomics - Money stickman */}
+            <div className="bg-white/10 border-3 border-white rounded-xl p-6 transform hover:scale-105 transition-all duration-300">
+              <div className="text-center mb-6">
+                <div className="font-mono text-4xl whitespace-pre text-yellow-400 mb-4">{'   🤑\n  /|\\\n  / \\'}</div>
+                <div className="bg-white/20 border-2 border-white rounded-full p-3 relative">
+                  <div className="text-sm font-bold">"1B tokens? Number go up!"</div>
+                  <div className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-white"></div>
                 </div>
-                <div>
-                  <strong className="text-yellow-400">Q1 2025:</strong>
-                  <ul className="ml-4 mt-1 space-y-1">
-                    <li>• Group messaging features</li>
-                    <li>• Developer verification system</li>
-                    <li>• Mobile app beta</li>
-                  </ul>
+              </div>
+              <h3 className="text-2xl font-bold mb-4 text-yellow-400">💎 $DMDEV Tokenomics</h3>
+              <div className="space-y-2 text-gray-300 text-sm">
+                <div><strong className="text-white">Supply:</strong> 1B (nice round number)</div>
+                <div><strong className="text-white">Launch:</strong> pump.fun (obviously)</div>
+                <div><strong className="text-white">Uses:</strong> Premium features, governance, tips, revenue share</div>
+              </div>
+            </div>
+          </div>
+
+          {/* Roadmap - Timeline with stickmen */}
+          <div className="bg-white/10 border-3 border-white rounded-xl p-8 mb-16 transform hover:rotate-1 transition-all duration-300">
+            <h3 className="text-3xl font-bold mb-8 text-center text-purple-400">🗺️ The Roadmap (If We Don't Rug)</h3>
+            <div className="grid md:grid-cols-3 gap-8">
+              {/* Q4 2024 */}
+              <div className="text-center">
+                <div className="font-mono text-3xl whitespace-pre text-blue-400 mb-3">{'   🚀\n  /|\\\n  / \\'}</div>
+                <div className="bg-blue-400/20 border-2 border-blue-400 rounded-lg p-4">
+                  <div className="font-bold text-blue-400 mb-2">Q4 2024: "The Launch"</div>
+                  <div className="text-xs text-gray-300">
+                    Platform launch • pump.fun token • Basic messaging • Solana integration
+                  </div>
                 </div>
-                <div>
-                  <strong className="text-blue-400">Q2 2025:</strong>
-                  <ul className="ml-4 mt-1 space-y-1">
-                    <li>• Cross-chain expansion</li>
-                    <li>• DAO governance launch</li>
-                    <li>• Developer bounty platform</li>
-                  </ul>
+              </div>
+
+              {/* Q1 2025 */}
+              <div className="text-center">
+                <div className="font-mono text-3xl whitespace-pre text-green-400 mb-3">{'   👥\n  /|\\\n  / \\'}</div>
+                <div className="bg-green-400/20 border-2 border-green-400 rounded-lg p-4">
+                  <div className="font-bold text-green-400 mb-2">Q1 2025: "The Expansion"</div>
+                  <div className="text-xs text-gray-300">
+                    Group messaging • Dev verification • Mobile app beta • More features
+                  </div>
+                </div>
+              </div>
+
+              {/* Q2 2025 */}
+              <div className="text-center">
+                <div className="font-mono text-3xl whitespace-pre text-purple-400 mb-3">{'   🌍\n  /|\\\n  / \\'}</div>
+                <div className="bg-purple-400/20 border-2 border-purple-400 rounded-lg p-4">
+                  <div className="font-bold text-purple-400 mb-2">Q2 2025: "World Domination"</div>
+                  <div className="text-xs text-gray-300">
+                    Cross-chain • DAO governance • Developer bounties • Moon mission
+                  </div>
                 </div>
               </div>
             </div>
           </div>
 
           {/* Call to Action */}
-          <div className="text-center mt-16">
-            <div className="bg-gradient-to-r from-purple-500 to-pink-500 border-3 border-white rounded-xl p-8 transform hover:scale-105 transition-all duration-300">
-              <h3 className="text-3xl font-bold mb-4">🚀 Join the Revolution</h3>
+          <div className="text-center">
+            <div className="bg-gradient-to-r from-purple-500 to-pink-500 border-3 border-white rounded-xl p-8 transform hover:scale-105 transition-all duration-300 relative">
+              <div className="absolute -top-8 left-1/2 transform -translate-x-1/2">
+                <div className="font-mono text-4xl whitespace-pre text-white">{'   🎉\n  /|\\\n  / \\'}</div>
+              </div>
+              <h3 className="text-3xl font-bold mb-4 mt-8">Join the Degen Revolution</h3>
               <p className="text-xl mb-6">
-                Be part of the first anonymous, encrypted communication platform for Solana developers
+                First anon crypto communication platform that actually works! 
               </p>
               <div className="flex justify-center gap-4 flex-wrap">
                 <a 
@@ -926,7 +927,7 @@ export default function Home() {
                   rel="noopener noreferrer"
                   className="bg-yellow-400 text-black border-3 border-black py-3 px-6 font-bold rounded-xl hover:scale-110 transition-all duration-300 interactive-btn"
                 >
-                  🎉 Buy $DMDEV on pump.fun
+                  🎯 Buy $DMDEV (pump.fun)
                 </a>
                 <a 
                   href="https://x.com/DMthedevs" 
@@ -934,20 +935,23 @@ export default function Home() {
                   rel="noopener noreferrer"
                   className="bg-blue-400 text-white border-3 border-black py-3 px-6 font-bold rounded-xl hover:scale-110 transition-all duration-300 interactive-btn"
                 >
-                  🐦 Follow Updates
+                  🐦 Follow the Chaos
                 </a>
               </div>
             </div>
           </div>
 
           {/* Disclaimer */}
-          <div className="mt-12 text-center text-gray-400 text-sm border-t border-white/20 pt-8">
+          <div className="mt-12 text-center text-gray-400 text-xs border-t border-white/20 pt-8">
+            <div className="flex justify-center mb-4">
+              <div className="font-mono text-2xl whitespace-pre">{'   ⚠️\n  /|\\\n  / \\'}</div>
+            </div>
             <p className="mb-2">
-              ⚠️ <strong>Disclaimer:</strong> $DMDEV is a utility token for the DM the DEV platform. 
-              This is not financial advice. Cryptocurrency investments carry risk.
+              <strong>Disclaimer:</strong> $DMDEV might moon or might rug. DYOR, we're just building cool stuff. 
+              Not financial advice, just vibes and encrypted messages.
             </p>
-            <p>
-              Built with ❤️ for the Solana community • Powered by pump.fun • Secured by cryptography
+            <p className="text-gray-500">
+              Built with ❤️ and too much caffeine • Powered by pump.fun • Secured by actual cryptography (not just hype)
             </p>
           </div>
         </div>
