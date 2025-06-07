@@ -6,6 +6,9 @@ export const connection = new Connection(HELIUS_RPC, "confirmed");
 
 export async function getTokenData(mintAddress: string) {
   try {
+    // Ensure mintAddress is properly formatted (base58, 44 characters)
+    const cleanMintAddress = mintAddress.trim();
+    
     // Fetch token asset data
     const assetResponse = await fetch(HELIUS_RPC, {
       method: 'POST',
@@ -16,7 +19,7 @@ export async function getTokenData(mintAddress: string) {
         jsonrpc: '2.0',
         id: 'asset-lookup',
         method: 'getAsset',
-        params: [mintAddress],
+        params: [cleanMintAddress],
       }),
     });
 
@@ -38,84 +41,61 @@ export async function getTokenData(mintAddress: string) {
         const balance = await connection.getBalance(new PublicKey(creator));
         creatorSolBalance = balance / LAMPORTS_PER_SOL;
 
-        // Fetch total tokens launched by this creator
-        const searchResponse = await fetch(HELIUS_RPC, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            jsonrpc: '2.0',
-            id: 'search-assets',
-            method: 'searchAssets',
-            params: {
-              creatorAddress: creator,
-              grouping: ["collection", "collection"],
-              page: 1,
-              limit: 1000,
-              displayOptions: {
-                showNativeBalance: false,
-                showInscription: false,
-                showCollectionMetadata: false
-              }
-            },
-          }),
-        });
-
-        const searchData = await searchResponse.json();
-        console.log('Search response for creator tokens:', JSON.stringify(searchData, null, 2));
+        // Use Helius enhanced transactions API to find token creation events
+        const transactionsResponse = await fetch(`https://api.helius.xyz/v0/addresses/${creator}/transactions?api-key=7c8a804a-bb84-4963-b03b-421a5d39c887&type=TRANSFER&limit=1000`);
         
-        if (searchData.error) {
-          console.error('Search API error:', JSON.stringify(searchData.error, null, 2));
-          // Try alternative approach using getAssetsByOwner
-          const ownerResponse = await fetch(HELIUS_RPC, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              jsonrpc: '2.0',
-              id: 'get-assets-by-owner',
-              method: 'getAssetsByOwner',
-              params: {
-                ownerAddress: creator,
-                page: 1,
-                limit: 1000,
-                displayOptions: {
-                  showNativeBalance: false
-                }
-              },
-            }),
-          });
+        if (transactionsResponse.ok) {
+          const transactionsData = await transactionsResponse.json();
+          console.log('Transactions response for creator:', JSON.stringify(transactionsData, null, 2));
           
-          const ownerData = await ownerResponse.json();
-          console.log('Owner assets response:', JSON.stringify(ownerData, null, 2));
+          // Count token creation events by looking for initializeMint instructions
+          let tokenCreationCount = 0;
           
-          if (ownerData.result && ownerData.result.items) {
-            // Filter for tokens that this address created (not just owns)
-            const createdTokens = ownerData.result.items.filter((item: any) => 
-              item.creators && item.creators.some((c: any) => c.address === creator)
-            );
-            tokensLaunched = createdTokens.length;
-            console.log(`Found ${tokensLaunched} tokens created by ${creator}`);
+          if (transactionsData && Array.isArray(transactionsData)) {
+            transactionsData.forEach((tx: any) => {
+              if (tx.meta?.innerInstructions) {
+                tx.meta.innerInstructions.forEach((innerIx: any) => {
+                  if (innerIx.instructions) {
+                    innerIx.instructions.forEach((instruction: any) => {
+                      if (instruction.parsed?.type === 'initializeMint' || 
+                          instruction.parsed?.info?.instruction === 'initializeMint') {
+                        tokenCreationCount++;
+                      }
+                    });
+                  }
+                });
+              }
+              
+              // Also check for token creation events in enhanced transaction data
+              if (tx.events?.token?.newTokens) {
+                tokenCreationCount += tx.events.token.newTokens.length;
+              }
+            });
           }
-        } else if (searchData.result && searchData.result.items) {
-          tokensLaunched = searchData.result.total || searchData.result.items.length;
-          console.log(`SearchAssets found ${tokensLaunched} tokens for creator ${creator}`);
+          
+          tokensLaunched = tokenCreationCount;
+          console.log(`Found ${tokensLaunched} token creation events for creator ${creator}`);
+        } else {
+          console.error('Failed to fetch transactions:', transactionsResponse.status);
         }
       } catch (error) {
         console.error('Error fetching creator data:', error);
       }
     }
 
-    // Fetch token price data from Jupiter API
+    // Fetch token price data from Jupiter API with properly formatted address
     let marketCap = null;
     try {
-      const jupiterResponse = await fetch(`https://price.jup.ag/v4/price?ids=${mintAddress}`);
-      const priceData = await jupiterResponse.json();
-      const price = priceData.data[mintAddress]?.price;
-      if (price) {
-        marketCap = price;  // Just show the price instead of market cap since we removed supply
+      // Ensure the token address is valid base58 before calling Jupiter
+      if (cleanMintAddress.length >= 32 && cleanMintAddress.length <= 44) {
+        const jupiterResponse = await fetch(`https://price.jup.ag/v4/price?ids=${cleanMintAddress}`);
+        const priceData = await jupiterResponse.json();
+        const price = priceData.data[cleanMintAddress]?.price;
+        if (price) {
+          marketCap = price;
+        }
+      } else {
+        console.warn('Invalid token address format for Jupiter API:', cleanMintAddress);
       }
     } catch (error) {
       console.error('Error fetching price data:', error);
