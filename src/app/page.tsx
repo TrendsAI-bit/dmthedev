@@ -9,6 +9,7 @@ import { encryptMessage, decryptMessage, EncryptedData, deriveKeypairFromWallet 
 import { uploadMessage, fetchMessagesForDeployer, EncryptedMessage } from '@/utils/supabase';
 import dynamic from 'next/dynamic';
 import ClientOnly from '@/components/ClientOnly';
+import SolBalanceAvatar from '@/components/SolBalanceAvatar';
 import bs58 from 'bs58';
 
 const HELIUS_RPC = process.env.NEXT_PUBLIC_HELIUS_RPC || 'https://mainnet.helius-rpc.com/?api-key=7c8a804a-bb84-4963-b03b-421a5d39c887';
@@ -638,19 +639,40 @@ export default function Home() {
                     {deployerInfo.error ? (
                       <div className="text-red-600">{deployerInfo.error}</div>
                     ) : (
-                      <>
-                        <div><strong>Token:</strong> {deployerInfo.name} ({deployerInfo.symbol})</div>
-                        <div><strong>Deployer:</strong> {deployerInfo.address}</div>
+                      <div className="flex flex-col lg:flex-row gap-6">
+                        {/* Deployer Info Section */}
+                        <div className="flex-1">
+                          <div><strong>Token:</strong> {deployerInfo.name} ({deployerInfo.symbol})</div>
+                          <div><strong>Deployer:</strong> {deployerInfo.address}</div>
+                          {typeof deployerInfo.creatorSolBalance === 'number' && (
+                            <div><strong>Deployer SOL Balance:</strong> {deployerInfo.creatorSolBalance.toFixed(2)} SOL</div>
+                          )}
+                          {typeof deployerInfo.marketCap === 'number' && (
+                            <div><strong>Token Price:</strong> ${deployerInfo.marketCap.toLocaleString('en-US', {
+                              minimumFractionDigits: 2,
+                              maximumFractionDigits: 6,
+                            })}</div>
+                          )}
+                        </div>
+                        
+                        {/* SOL Balance Avatar Section */}
                         {typeof deployerInfo.creatorSolBalance === 'number' && (
-                          <div><strong>Deployer SOL Balance:</strong> {deployerInfo.creatorSolBalance.toFixed(2)} SOL</div>
+                          <div className="flex-shrink-0 lg:w-80">
+                            <div className="text-center mb-3">
+                              <div className="text-lg font-bold text-black transform rotate-1">
+                                🎭 Deployer Avatar 🎭
+                              </div>
+                              <div className="text-xs text-gray-600 italic">
+                                Based on SOL Balance
+                              </div>
+                            </div>
+                            <SolBalanceAvatar 
+                              solBalance={deployerInfo.creatorSolBalance}
+                              className="mx-auto"
+                            />
+                          </div>
                         )}
-                        {typeof deployerInfo.marketCap === 'number' && (
-                          <div><strong>Token Price:</strong> ${deployerInfo.marketCap.toLocaleString('en-US', {
-                            minimumFractionDigits: 2,
-                            maximumFractionDigits: 6,
-                          })}</div>
-                        )}
-                      </>
+                      </div>
                     )}
                   </div>
                 )}
