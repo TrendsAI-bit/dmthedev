@@ -470,7 +470,7 @@ export default function Home() {
 
       <div className="max-w-7xl mx-auto p-5">
         {/* Stickman */}
-        <div className="flex items-center justify-center my-10 gap-8">
+        <div className="flex items-center justify-center my-10 gap-8 max-w-4xl mx-auto">
           <div className="font-mono text-4xl whitespace-pre -rotate-2 transform transition-all duration-500 hover:scale-110 hover:rotate-6 cursor-pointer animate-bounce-slow">
             {stickmanPoses[currentStickmanPose]}</div>
           <div className="space-y-4">
@@ -482,8 +482,8 @@ export default function Home() {
 
         {/* How It Works Section */}
         <section className="section">
-          <h2 className="section-title">🚀 How DM the DEV Works</h2>
-          <div className="grid md:grid-cols-4 gap-6 mb-6">
+          <h2 className="section-title text-center">🚀 How DM the DEV Works</h2>
+          <div className="grid md:grid-cols-4 gap-6 mb-6 max-w-6xl mx-auto">
             {/* Step 1 */}
             <div className="text-center p-6 border-3 border-black rounded-xl bg-white transform hover:scale-105 transition-all duration-300 animate-float relative" style={{animationDelay: '0s'}}>
               <div className="border-2 border-black rounded-lg p-2 mb-4 bg-gray-50">
@@ -570,7 +570,7 @@ export default function Home() {
             </div>
           </div>
           
-          <div className="text-center p-6 bg-white border-3 border-black rounded-xl transform hover:rotate-1 transition-all duration-300">
+          <div className="text-center p-6 bg-white border-3 border-black rounded-xl transform hover:rotate-1 transition-all duration-300 max-w-4xl mx-auto">
             <div className="flex justify-center mb-4">
               <div className="font-mono text-3xl whitespace-pre">{'   🛡️\n  /|\\\n  / \\'}</div>
             </div>
@@ -586,8 +586,8 @@ export default function Home() {
         <ClientOnly>
           <>
             {/* Token Lookup */}
-            <section className="section" id="token-lookup">
-              <h2 className="section-title">[🔍] Token Lookup</h2>
+            <section className="section max-w-4xl mx-auto" id="token-lookup">
+              <h2 className="section-title text-center">[🔍] Token Lookup</h2>
               <div className="space-y-4">
                 <input
                   type="text"
@@ -630,7 +630,7 @@ export default function Home() {
             </section>
 
             {/* Message Tabs */}
-            <div className="flex gap-2 mb-4">
+            <div className="flex gap-2 mb-4 max-w-4xl mx-auto">
               <button
                 onClick={() => setActiveTab('send')}
                 className={`flex-1 py-3 px-6 font-bold rounded-t-xl border-3 border-black transition-all ${
@@ -655,8 +655,8 @@ export default function Home() {
 
             {/* Send Message Section */}
             {activeTab === 'send' && (
-              <section className="section">
-                <h2 className="section-title">[💌] Send Message to Developer</h2>
+              <section className="section max-w-4xl mx-auto">
+                <h2 className="section-title text-center">[💌] Send Message to Developer</h2>
                 
                 {/* Step 1: Derive Recipient Key */}
                 <div className="mb-8 p-5 border-3 border-black rounded-xl bg-yellow-50 -rotate-[0.5deg]">
@@ -750,9 +750,9 @@ export default function Home() {
 
             {/* Decrypt Message Section */}
             {activeTab === 'decrypt' && (
-              <section className="section">
-                <h2 className="section-title">[🔑] Decrypt Messages</h2>
-                <p className="mb-5 text-gray-600 -rotate-[0.3deg]">
+              <section className="section max-w-4xl mx-auto">
+                <h2 className="section-title text-center">[🔑] Decrypt Messages</h2>
+                <p className="mb-5 text-gray-600 -rotate-[0.3deg] text-center">
                   Got an encrypted message? Paste it here to decrypt! [detective]
                 </p>
                 <div className="space-y-4">
@@ -782,8 +782,8 @@ export default function Home() {
 
             {/* Messages Section */}
             {connected && publicKey && (
-              <section className="section mt-8" id="my-messages">
-                <h2 className="section-title">[📬] Your Messages</h2>
+              <section className="section mt-8 max-w-4xl mx-auto" id="my-messages">
+                <h2 className="section-title text-center">[📬] Your Messages</h2>
                 <div className="space-y-4">
                   {messages.length === 0 ? (
                     <div className="text-center text-gray-500 py-8 animate-pulse-gentle">
