@@ -422,15 +422,26 @@ export default function Home() {
           <div className="flex items-center gap-4">
             <button 
               onClick={() => document.getElementById('token-lookup')?.scrollIntoView({ behavior: 'smooth' })}
-              className="bg-green-400 text-black border-3 border-black py-2 px-4 font-bold rounded-xl rotate-1 hover:rotate-3 hover:scale-110 transition-all duration-300 interactive-btn"
+              className="bg-white text-black border-3 border-black py-2 px-4 font-bold rounded-xl -rotate-1 hover:rotate-2 hover:scale-110 transition-all duration-300 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] active:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:translate-x-1 active:translate-y-1"
             >
               🚀 Start Using
+            </button>
+            <button 
+              onClick={() => {
+                setActiveTab('decrypt');
+                setTimeout(() => {
+                  document.getElementById('my-messages')?.scrollIntoView({ behavior: 'smooth' });
+                }, 100);
+              }}
+              className="bg-white text-black border-3 border-black py-2 px-4 font-bold rounded-xl rotate-1 hover:-rotate-2 hover:scale-110 transition-all duration-300 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] active:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:translate-x-1 active:translate-y-1"
+            >
+              📬 My Messages
             </button>
             <a 
               href="https://x.com/DMthedevs" 
               target="_blank" 
               rel="noopener noreferrer"
-              className="bg-blue-400 text-white border-3 border-black py-2 px-4 font-bold rounded-xl rotate-1 hover:rotate-3 hover:scale-110 transition-all duration-300 interactive-btn"
+              className="bg-white text-black border-3 border-black py-2 px-4 font-bold rounded-xl rotate-2 hover:-rotate-1 hover:scale-110 transition-all duration-300 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] active:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:translate-x-1 active:translate-y-1"
             >
               🐦 Follow @DMthedevs
             </a>
@@ -446,8 +457,16 @@ export default function Home() {
         <div className="flex items-center justify-center my-10 gap-8">
           <div className="font-mono text-4xl whitespace-pre -rotate-2 transform transition-all duration-500 hover:scale-110 hover:rotate-6 cursor-pointer animate-bounce-slow">
             {stickmanPoses[currentStickmanPose]}</div>
-          <div className="bg-white border-3 border-black rounded-[20px] p-4 max-w-[350px] rotate-1 relative transform transition-all duration-300 hover:rotate-3 hover:scale-105 animate-wiggle-slow">
-            Hey! I'm your ugly but trustworthy DEV mascot! [nerd face]
+          <div className="space-y-4">
+            <div className="bg-white border-3 border-black rounded-[20px] p-4 max-w-[350px] rotate-1 relative transform transition-all duration-300 hover:rotate-3 hover:scale-105 animate-wiggle-slow">
+              Hey! I'm your ugly but trustworthy DEV mascot! [nerd face]
+            </div>
+            <div className="bg-white border-3 border-black rounded-[20px] p-4 max-w-[350px] -rotate-1 relative transform transition-all duration-300 hover:rotate-2 hover:scale-105 animate-float">
+              I heard you want to DM the dev? Go ahead. Bribe them, beg them, ask them out on a virtual date—whatever works.
+            </div>
+            <div className="bg-white border-3 border-black rounded-[20px] p-4 max-w-[350px] rotate-2 relative transform transition-all duration-300 hover:-rotate-1 hover:scale-105 animate-pulse-gentle">
+              If this changed your life, you know where to find me. Message me… and don't forget the tip 😉
+            </div>
           </div>
         </div>
 
@@ -753,7 +772,7 @@ export default function Home() {
 
             {/* Messages Section */}
             {connected && publicKey && (
-              <section className="section mt-8">
+              <section className="section mt-8" id="my-messages">
                 <h2 className="section-title">[📬] Your Messages</h2>
                 <div className="space-y-4">
                   {messages.length === 0 ? (
