@@ -75,6 +75,14 @@ export default function Home() {
 
   const [currentMascotMessage, setCurrentMascotMessage] = useState(0);
 
+  // Helper function to get deployer tier based on token count
+  const getDeployerTier = (mintCount: number) => {
+    if (mintCount === 0) return { label: "🟢 Clean", color: "text-green-600" };
+    if (mintCount < 3) return { label: "🟡 Trusted", color: "text-yellow-600" };
+    if (mintCount < 6) return { label: "🟠 Sus", color: "text-orange-600" };
+    return { label: "🔴 Deployer Spammer", color: "text-red-600" };
+  };
+
   const handleFindDeployer = async () => {
     if (!tokenAddress) return;
     
@@ -651,15 +659,10 @@ export default function Home() {
                           {typeof deployerInfo.tokensLaunched === 'number' && (
                             <div>
                               <strong>Tokens Launched:</strong> {deployerInfo.tokensLaunched} {deployerInfo.tokensLaunched === 1 ? 'token' : 'tokens'}
-                              {deployerInfo.tokensLaunched === 1 && (
-                                <span className="text-green-600 font-bold"> 🌟 (First-timer!)</span>
-                              )}
-                              {deployerInfo.tokensLaunched > 50 && (
-                                <span className="text-orange-600 font-bold"> 🚨 (Serial launcher!)</span>
-                              )}
-                              {deployerInfo.tokensLaunched > 10 && deployerInfo.tokensLaunched <= 50 && (
-                                <span className="text-blue-600 font-bold"> 🎯 (Experienced)</span>
-                              )}
+                              {(() => {
+                                const tier = getDeployerTier(deployerInfo.tokensLaunched);
+                                return <span className={`font-bold ml-2 ${tier.color}`}>({tier.label})</span>;
+                              })()}
                             </div>
                           )}
                           {typeof deployerInfo.creatorSolBalance === 'number' && (

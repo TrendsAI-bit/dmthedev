@@ -41,40 +41,29 @@ export async function getTokenData(mintAddress: string) {
         const balance = await connection.getBalance(new PublicKey(creator));
         creatorSolBalance = balance / LAMPORTS_PER_SOL;
 
-        // Use Helius enhanced transactions API to find token creation events
-        const transactionsResponse = await fetch(`https://api.helius.xyz/v0/addresses/${creator}/transactions?api-key=7c8a804a-bb84-4963-b03b-421a5d39c887&type=TRANSFER&limit=1000`);
+        // Use Helius transactions API to count token mints (initializeMint instructions)
+        const transactionsResponse = await fetch(`https://api.helius.xyz/v0/addresses/${creator}/transactions?api-key=7c8a804a-bb84-4963-b03b-421a5d39c887&limit=1000&type=ALL`);
         
         if (transactionsResponse.ok) {
           const transactionsData = await transactionsResponse.json();
-          console.log('Transactions response for creator:', JSON.stringify(transactionsData, null, 2));
           
-          // Count token creation events by looking for initializeMint instructions
-          let tokenCreationCount = 0;
+          let mintCount = 0;
           
-          if (transactionsData && Array.isArray(transactionsData)) {
+          if (Array.isArray(transactionsData)) {
             transactionsData.forEach((tx: any) => {
-              if (tx.meta?.innerInstructions) {
-                tx.meta.innerInstructions.forEach((innerIx: any) => {
-                  if (innerIx.instructions) {
-                    innerIx.instructions.forEach((instruction: any) => {
-                      if (instruction.parsed?.type === 'initializeMint' || 
-                          instruction.parsed?.info?.instruction === 'initializeMint') {
-                        tokenCreationCount++;
-                      }
-                    });
-                  }
-                });
-              }
-              
-              // Also check for token creation events in enhanced transaction data
-              if (tx.events?.token?.newTokens) {
-                tokenCreationCount += tx.events.token.newTokens.length;
-              }
+              tx?.instructions?.forEach((ix: any) => {
+                if (
+                  ix.programId === "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA" &&
+                  ix.parsed?.type === "initializeMint"
+                ) {
+                  mintCount++;
+                }
+              });
             });
           }
           
-          tokensLaunched = tokenCreationCount;
-          console.log(`Found ${tokensLaunched} token creation events for creator ${creator}`);
+          tokensLaunched = mintCount;
+          console.log(`Found ${tokensLaunched} token mints by ${creator}`);
         } else {
           console.error('Failed to fetch transactions:', transactionsResponse.status);
         }
