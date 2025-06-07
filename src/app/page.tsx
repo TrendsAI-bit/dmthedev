@@ -419,9 +419,19 @@ export default function Home() {
           <div className="text-3xl font-bold -rotate-1 relative">
             DM the DEV ✎
           </div>
-          <ClientOnly>
-            <WalletMultiButton className="wallet-btn" />
-          </ClientOnly>
+          <div className="flex items-center gap-4">
+            <a 
+              href="https://x.com/DMthedevs" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="bg-blue-400 text-white border-3 border-black py-2 px-4 font-bold rounded-xl rotate-1 hover:rotate-3 hover:scale-110 transition-all duration-300 interactive-btn"
+            >
+              🐦 Follow @DMthedevs
+            </a>
+            <ClientOnly>
+              <WalletMultiButton className="wallet-btn" />
+            </ClientOnly>
+          </div>
         </div>
       </header>
 
@@ -434,6 +444,48 @@ export default function Home() {
             Hey! I'm your ugly but trustworthy DEV mascot! [nerd face]
           </div>
         </div>
+
+        {/* How It Works Section */}
+        <section className="section">
+          <h2 className="section-title">🚀 How DM the DEV Works</h2>
+          <div className="grid md:grid-cols-4 gap-6 mb-6">
+            {/* Step 1 */}
+            <div className="text-center p-4 border-2 border-black rounded-xl bg-blue-50 transform hover:scale-105 transition-all duration-300 animate-float" style={{animationDelay: '0s'}}>
+              <div className="text-3xl mb-2">🔍</div>
+              <div className="font-bold text-sm mb-2">1. Find Token Deployer</div>
+              <div className="text-xs text-gray-600">Paste any pump.fun token address to find who deployed it</div>
+            </div>
+
+            {/* Step 2 */}
+            <div className="text-center p-4 border-2 border-black rounded-xl bg-yellow-50 transform hover:scale-105 transition-all duration-300 animate-float" style={{animationDelay: '0.1s'}}>
+              <div className="text-3xl mb-2">🔐</div>
+              <div className="font-bold text-sm mb-2">2. Send Anonymous Message</div>
+              <div className="text-xs text-gray-600">Your message gets encrypted and sent anonymously</div>
+            </div>
+
+            {/* Step 3 */}
+            <div className="text-center p-4 border-2 border-black rounded-xl bg-red-50 transform hover:scale-105 transition-all duration-300 animate-float" style={{animationDelay: '0.2s'}}>
+              <div className="text-3xl mb-2">📱</div>
+              <div className="font-bold text-sm mb-2">3. Deployer Gets Notification</div>
+              <div className="text-xs text-gray-600">They see an encrypted message waiting in their dashboard</div>
+            </div>
+
+            {/* Step 4 */}
+            <div className="text-center p-4 border-2 border-black rounded-xl bg-green-50 transform hover:scale-105 transition-all duration-300 animate-float" style={{animationDelay: '0.3s'}}>
+              <div className="text-3xl mb-2">✨</div>
+              <div className="font-bold text-sm mb-2">4. Decrypt & Read</div>
+              <div className="text-xs text-gray-600">Deployer uses their wallet to decrypt and read your message</div>
+            </div>
+          </div>
+          
+          <div className="text-center p-4 bg-gray-50 border-2 border-gray-300 rounded-xl">
+            <div className="font-bold text-gray-700 mb-2">🛡️ Why It's Secure</div>
+            <div className="text-sm text-gray-600">
+              Messages are encrypted using signature-derived keys. Only the deployer's wallet can decrypt them. 
+              No personal info is shared - complete anonymity guaranteed!
+            </div>
+          </div>
+        </section>
 
         <ClientOnly>
           <>
@@ -688,6 +740,156 @@ export default function Home() {
             )}
           </>
         </ClientOnly>
+      </div>
+
+      {/* Whitepaper Section */}
+      <div className="bg-gray-900 text-white py-20 mt-20">
+        <div className="max-w-7xl mx-auto p-5">
+          <section className="mb-16">
+            <h2 className="text-5xl font-bold text-center mb-10 rotate-1 animate-wiggle-slow">
+              📄 DM the DEV Whitepaper
+            </h2>
+            <div className="text-center mb-12 text-gray-300">
+              <p className="text-xl mb-4">The Future of Anonymous Developer Communication on Solana</p>
+              <p className="text-sm">Version 1.0 • Launch on pump.fun</p>
+            </div>
+          </section>
+
+          <div className="grid lg:grid-cols-2 gap-12">
+            {/* Problem & Solution */}
+            <div className="bg-white/10 border-2 border-white/20 rounded-xl p-6 transform hover:scale-105 transition-all duration-300">
+              <h3 className="text-2xl font-bold mb-4 text-yellow-400">🎯 The Problem</h3>
+              <ul className="space-y-2 text-gray-300 mb-6">
+                <li>• Token deployers are hard to reach directly</li>
+                <li>• No secure way to send anonymous feedback</li>
+                <li>• Community suggestions get lost in noise</li>
+                <li>• Doxxing risks when contacting developers</li>
+              </ul>
+              
+              <h3 className="text-2xl font-bold mb-4 text-green-400">✨ Our Solution</h3>
+              <ul className="space-y-2 text-gray-300">
+                <li>• End-to-end encrypted messaging system</li>
+                <li>• Complete anonymity for senders</li>
+                <li>• Direct access to any token deployer</li>
+                <li>• Built on Solana for speed & security</li>
+              </ul>
+            </div>
+
+            {/* Technical Architecture */}
+            <div className="bg-white/10 border-2 border-white/20 rounded-xl p-6 transform hover:scale-105 transition-all duration-300">
+              <h3 className="text-2xl font-bold mb-4 text-blue-400">🔧 Technical Architecture</h3>
+              <div className="space-y-3 text-gray-300">
+                <div>
+                  <strong className="text-white">Encryption:</strong> Signature-derived keys using NaCl TweetNaCl
+                </div>
+                <div>
+                  <strong className="text-white">Blockchain:</strong> Solana for wallet integration & verification
+                </div>
+                <div>
+                  <strong className="text-white">Storage:</strong> Encrypted messages stored off-chain
+                </div>
+                <div>
+                  <strong className="text-white">Privacy:</strong> Zero personal information required
+                </div>
+                <div>
+                  <strong className="text-white">UI/UX:</strong> Web3-native with animated interactions
+                </div>
+              </div>
+            </div>
+
+            {/* Tokenomics */}
+            <div className="bg-white/10 border-2 border-white/20 rounded-xl p-6 transform hover:scale-105 transition-all duration-300">
+              <h3 className="text-2xl font-bold mb-4 text-purple-400">💎 $DMDEV Tokenomics</h3>
+              <div className="space-y-3 text-gray-300">
+                <div>
+                  <strong className="text-white">Total Supply:</strong> 1,000,000,000 DMDEV
+                </div>
+                <div>
+                  <strong className="text-white">Launch Platform:</strong> pump.fun
+                </div>
+                <div>
+                  <strong className="text-white">Use Cases:</strong>
+                  <ul className="ml-4 mt-2 space-y-1">
+                    <li>• Premium messaging features</li>
+                    <li>• Governance voting rights</li>
+                    <li>• Developer incentives</li>
+                    <li>• Platform revenue sharing</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+
+            {/* Roadmap */}
+            <div className="bg-white/10 border-2 border-white/20 rounded-xl p-6 transform hover:scale-105 transition-all duration-300">
+              <h3 className="text-2xl font-bold mb-4 text-red-400">🗺️ Roadmap 2024-2025</h3>
+              <div className="space-y-3 text-gray-300">
+                <div>
+                  <strong className="text-green-400">Q4 2024:</strong> 
+                  <ul className="ml-4 mt-1 space-y-1">
+                    <li>• Platform launch & pump.fun token</li>
+                    <li>• Basic encrypted messaging</li>
+                    <li>• Solana wallet integration</li>
+                  </ul>
+                </div>
+                <div>
+                  <strong className="text-yellow-400">Q1 2025:</strong>
+                  <ul className="ml-4 mt-1 space-y-1">
+                    <li>• Group messaging features</li>
+                    <li>• Developer verification system</li>
+                    <li>• Mobile app beta</li>
+                  </ul>
+                </div>
+                <div>
+                  <strong className="text-blue-400">Q2 2025:</strong>
+                  <ul className="ml-4 mt-1 space-y-1">
+                    <li>• Cross-chain expansion</li>
+                    <li>• DAO governance launch</li>
+                    <li>• Developer bounty platform</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Call to Action */}
+          <div className="text-center mt-16">
+            <div className="bg-gradient-to-r from-purple-500 to-pink-500 border-3 border-white rounded-xl p-8 transform hover:scale-105 transition-all duration-300">
+              <h3 className="text-3xl font-bold mb-4">🚀 Join the Revolution</h3>
+              <p className="text-xl mb-6">
+                Be part of the first anonymous, encrypted communication platform for Solana developers
+              </p>
+              <div className="flex justify-center gap-4 flex-wrap">
+                <a 
+                  href="https://pump.fun" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="bg-yellow-400 text-black border-3 border-black py-3 px-6 font-bold rounded-xl hover:scale-110 transition-all duration-300 interactive-btn"
+                >
+                  🎉 Buy $DMDEV on pump.fun
+                </a>
+                <a 
+                  href="https://x.com/DMthedevs" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="bg-blue-400 text-white border-3 border-black py-3 px-6 font-bold rounded-xl hover:scale-110 transition-all duration-300 interactive-btn"
+                >
+                  🐦 Follow Updates
+                </a>
+              </div>
+            </div>
+          </div>
+
+          {/* Disclaimer */}
+          <div className="mt-12 text-center text-gray-400 text-sm border-t border-white/20 pt-8">
+            <p className="mb-2">
+              ⚠️ <strong>Disclaimer:</strong> $DMDEV is a utility token for the DM the DEV platform. 
+              This is not financial advice. Cryptocurrency investments carry risk.
+            </p>
+            <p>
+              Built with ❤️ for the Solana community • Powered by pump.fun • Secured by cryptography
+            </p>
+          </div>
+        </div>
       </div>
 
       {/* Footer */}
