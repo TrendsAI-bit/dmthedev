@@ -450,39 +450,100 @@ export default function Home() {
           <h2 className="section-title">🚀 How DM the DEV Works</h2>
           <div className="grid md:grid-cols-4 gap-6 mb-6">
             {/* Step 1 */}
-            <div className="text-center p-4 border-2 border-black rounded-xl bg-blue-50 transform hover:scale-105 transition-all duration-300 animate-float" style={{animationDelay: '0s'}}>
-              <div className="text-3xl mb-2">🔍</div>
-              <div className="font-bold text-sm mb-2">1. Find Token Deployer</div>
-              <div className="text-xs text-gray-600">Paste any pump.fun token address to find who deployed it</div>
+            <div className="text-center p-6 border-3 border-black rounded-xl bg-white transform hover:scale-105 transition-all duration-300 animate-float relative" style={{animationDelay: '0s'}}>
+              <div className="border-2 border-black rounded-lg p-2 mb-4 bg-gray-50">
+                <div className="text-xl font-bold mb-2">1. Find Token Deployer</div>
+                <div className="font-mono text-2xl whitespace-pre mb-3">{'   o\n  /|\\\n  / \\'}</div>
+                <div className="bg-white border-2 border-black rounded-full p-2 relative">
+                  <div className="text-xs font-bold">"I want to contact the dev of $MOON!"</div>
+                  <div className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-black"></div>
+                </div>
+              </div>
+              <div className="bg-black text-green-400 p-2 rounded font-mono text-xs">
+                &gt; pump.fun token:<br/>
+                9xK...Ab2 → deployer:<br/>
+                Bb7...Xy9
+              </div>
+              <div className="text-xs mt-2 font-bold">[wallet] Bb7...Xy9</div>
+              <div className="text-xs text-gray-600 mt-2 italic">
+                Paste any Pump.fun token address to find who deployed it
+              </div>
             </div>
 
             {/* Step 2 */}
-            <div className="text-center p-4 border-2 border-black rounded-xl bg-yellow-50 transform hover:scale-105 transition-all duration-300 animate-float" style={{animationDelay: '0.1s'}}>
-              <div className="text-3xl mb-2">🔐</div>
-              <div className="font-bold text-sm mb-2">2. Send Anonymous Message</div>
-              <div className="text-xs text-gray-600">Your message gets encrypted and sent anonymously</div>
+            <div className="text-center p-6 border-3 border-black rounded-xl bg-white transform hover:scale-105 transition-all duration-300 animate-float relative" style={{animationDelay: '0.1s'}}>
+              <div className="border-2 border-black rounded-lg p-2 mb-4 bg-gray-50">
+                <div className="text-xl font-bold mb-2">2. Send Anonymous Message</div>
+                <div className="font-mono text-2xl whitespace-pre mb-3">{'   o\n  /|\\\n  / \\'}</div>
+                <div className="bg-white border-2 border-black rounded-full p-2 relative">
+                  <div className="text-xs font-bold">"Wen moon? Love the project!"</div>
+                  <div className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-black"></div>
+                </div>
+              </div>
+              <div className="text-sm mb-2">↓ [encrypt]</div>
+              <div className="bg-yellow-200 border-2 border-black rounded p-2 text-xs font-mono">
+                eK9x...mP2q [encrypted data]
+              </div>
+              <div className="border-2 border-black border-dashed rounded p-2 mt-2 text-xs">
+                Anonymous & Secure!
+              </div>
+              <div className="text-xs text-gray-600 mt-2 italic">
+                Your message gets encrypted and sent anonymously
+              </div>
             </div>
 
             {/* Step 3 */}
-            <div className="text-center p-4 border-2 border-black rounded-xl bg-red-50 transform hover:scale-105 transition-all duration-300 animate-float" style={{animationDelay: '0.2s'}}>
-              <div className="text-3xl mb-2">📱</div>
-              <div className="font-bold text-sm mb-2">3. Deployer Gets Notification</div>
-              <div className="text-xs text-gray-600">They see an encrypted message waiting in their dashboard</div>
+            <div className="text-center p-6 border-3 border-black rounded-xl bg-white transform hover:scale-105 transition-all duration-300 animate-float relative" style={{animationDelay: '0.2s'}}>
+              <div className="border-2 border-black rounded-lg p-2 mb-4 bg-gray-50">
+                <div className="text-xl font-bold mb-2">3. Deployer Gets Notification</div>
+                <div className="font-mono text-2xl whitespace-pre mb-3 text-red-500">{'   o\n  /|\\\n  / \\'}</div>
+                <div className="bg-white border-2 border-black rounded-full p-2 relative">
+                  <div className="text-xs font-bold">"Huh? I got a DM?"</div>
+                  <div className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-black"></div>
+                </div>
+              </div>
+              <div className="bg-black text-green-400 p-2 rounded font-mono text-xs mb-2">
+                📨 New encrypted message from: Anonymous
+              </div>
+              <div className="bg-yellow-200 border-2 border-black rounded p-2 text-xs">
+                eK9x...mP2q [click to decrypt]
+              </div>
+              <div className="text-xs text-gray-600 mt-2 italic">
+                Deployer sees they have an encrypted message waiting
+              </div>
             </div>
 
             {/* Step 4 */}
-            <div className="text-center p-4 border-2 border-black rounded-xl bg-green-50 transform hover:scale-105 transition-all duration-300 animate-float" style={{animationDelay: '0.3s'}}>
-              <div className="text-3xl mb-2">✨</div>
-              <div className="font-bold text-sm mb-2">4. Decrypt & Read</div>
-              <div className="text-xs text-gray-600">Deployer uses their wallet to decrypt and read your message</div>
+            <div className="text-center p-6 border-3 border-black rounded-xl bg-white transform hover:scale-105 transition-all duration-300 animate-float relative" style={{animationDelay: '0.3s'}}>
+              <div className="border-2 border-black rounded-lg p-2 mb-4 bg-gray-50">
+                <div className="text-xl font-bold mb-2">4. Decrypt & Read</div>
+                <div className="font-mono text-2xl whitespace-pre mb-3 text-green-600">{'   ☻\n  /|\\\n  / \\'}</div>
+                <div className="bg-white border-2 border-black rounded-full p-2 relative">
+                  <div className="text-xs font-bold">"Cool! A fan message!"</div>
+                  <div className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-black"></div>
+                </div>
+              </div>
+              <div className="bg-black text-green-400 p-2 rounded font-mono text-xs mb-2">
+                📨 "Wen moon? Love the project!" [decrypted successfully]
+              </div>
+              <div className="border-2 border-black border-dashed rounded p-2 text-xs">
+                "This is awesome!"
+              </div>
+              <div className="text-xs text-gray-600 mt-2 italic">
+                Deployer uses their wallet to decrypt and read the message
+              </div>
             </div>
           </div>
           
-          <div className="text-center p-4 bg-gray-50 border-2 border-gray-300 rounded-xl">
-            <div className="font-bold text-gray-700 mb-2">🛡️ Why It's Secure</div>
-            <div className="text-sm text-gray-600">
-              Messages are encrypted using signature-derived keys. Only the deployer's wallet can decrypt them. 
-              No personal info is shared - complete anonymity guaranteed!
+          <div className="text-center p-6 bg-white border-3 border-black rounded-xl transform hover:rotate-1 transition-all duration-300">
+            <div className="flex justify-center mb-4">
+              <div className="font-mono text-3xl whitespace-pre">{'   🛡️\n  /|\\\n  / \\'}</div>
+            </div>
+            <div className="font-bold text-lg mb-2">Why It's Secure & Anonymous</div>
+            <div className="text-sm text-gray-700 max-w-2xl mx-auto">
+              Messages are encrypted using <span className="font-mono bg-yellow-100 px-1">signature-derived keys</span>. 
+              Only the deployer's wallet can decrypt them. No personal info shared - complete anonymity guaranteed! 
+              It's like passing secret notes in class, but with military-grade crypto! 🤓
             </div>
           </div>
         </section>
