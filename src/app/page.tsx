@@ -470,11 +470,12 @@ export default function Home() {
 
       <div className="max-w-7xl mx-auto p-5">
         {/* Stickman */}
-        <div className="flex items-center justify-center my-10 gap-8 max-w-4xl mx-auto">
-          <div className="font-mono text-4xl whitespace-pre -rotate-2 transform transition-all duration-500 hover:scale-110 hover:rotate-6 cursor-pointer animate-bounce-slow">
-            {stickmanPoses[currentStickmanPose]}</div>
-          <div className="space-y-4">
-            <div className="bg-white border-3 border-black rounded-[20px] p-4 max-w-[350px] rotate-1 relative transform transition-all duration-300 hover:rotate-3 hover:scale-105 animate-wiggle-slow">
+        <div className="flex flex-col items-center justify-center my-10 max-w-5xl mx-auto">
+          <div className="flex items-center justify-center gap-8">
+            <div className="font-mono text-4xl whitespace-pre -rotate-2 transform transition-all duration-500 hover:scale-110 hover:rotate-6 cursor-pointer animate-bounce-slow">
+              {stickmanPoses[currentStickmanPose]}
+            </div>
+            <div className="bg-white border-3 border-black rounded-[20px] p-4 max-w-[400px] rotate-1 relative transform transition-all duration-300 hover:rotate-3 hover:scale-105 animate-wiggle-slow">
               {mascotMessages[currentMascotMessage]}
             </div>
           </div>
@@ -482,103 +483,108 @@ export default function Home() {
 
         {/* How It Works Section */}
         <section className="section">
-          <h2 className="section-title text-center">🚀 How DM the DEV Works</h2>
-          <div className="grid md:grid-cols-4 gap-6 mb-6 max-w-6xl mx-auto">
-            {/* Step 1 */}
-            <div className="text-center p-6 border-3 border-black rounded-xl bg-white transform hover:scale-105 transition-all duration-300 animate-float relative" style={{animationDelay: '0s'}}>
-              <div className="border-2 border-black rounded-lg p-2 mb-4 bg-gray-50">
-                <div className="text-xl font-bold mb-2">1. Find Token Deployer</div>
-                <div className="font-mono text-2xl whitespace-pre mb-3 hover:animate-bounce hover:text-blue-600 hover:scale-125 transition-all duration-300 cursor-pointer">{'   o\n  /|\\\n  / \\'}</div>
-                <div className="bg-white border-2 border-black rounded-full p-2 relative">
-                  <div className="text-xs font-bold">"I want to contact the dev of $MOON!"</div>
-                  <div className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-black"></div>
-                </div>
-              </div>
-              <div className="bg-black text-green-400 p-2 rounded font-mono text-xs">
-                &gt; pump.fun token:<br/>
-                9xK...Ab2 → deployer:<br/>
-                Bb7...Xy9
-              </div>
-              <div className="text-xs mt-2 font-bold">[wallet] Bb7...Xy9</div>
-              <div className="text-xs text-gray-600 mt-2 italic">
-                Paste any Pump.fun token address to find who deployed it
-              </div>
-            </div>
-
-            {/* Step 2 */}
-            <div className="text-center p-6 border-3 border-black rounded-xl bg-white transform hover:scale-105 transition-all duration-300 animate-float relative" style={{animationDelay: '0.1s'}}>
-              <div className="border-2 border-black rounded-lg p-2 mb-4 bg-gray-50">
-                <div className="text-xl font-bold mb-2">2. Send Anonymous Message</div>
-                <div className="font-mono text-2xl whitespace-pre mb-3 hover:animate-pulse hover:text-yellow-600 hover:rotate-12 transition-all duration-300 cursor-pointer">{'   o\n  /|\\\n  / \\'}</div>
-                <div className="bg-white border-2 border-black rounded-full p-2 relative">
-                  <div className="text-xs font-bold">"Wen moon? Love the project!"</div>
-                  <div className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-black"></div>
-                </div>
-              </div>
-              <div className="text-sm mb-2">↓ [encrypt]</div>
-              <div className="bg-yellow-200 border-2 border-black rounded p-2 text-xs font-mono">
-                eK9x...mP2q [encrypted data]
-              </div>
-              <div className="border-2 border-black border-dashed rounded p-2 mt-2 text-xs">
-                Anonymous & Secure!
-              </div>
-              <div className="text-xs text-gray-600 mt-2 italic">
-                Your message gets encrypted and sent anonymously
-              </div>
-            </div>
-
-            {/* Step 3 */}
-            <div className="text-center p-6 border-3 border-black rounded-xl bg-white transform hover:scale-105 transition-all duration-300 animate-float relative" style={{animationDelay: '0.2s'}}>
-              <div className="border-2 border-black rounded-lg p-2 mb-4 bg-gray-50">
-                <div className="text-xl font-bold mb-2">3. Deployer Gets Notification</div>
-                <div className="font-mono text-2xl whitespace-pre mb-3 text-red-500 hover:animate-spin hover:text-orange-500 hover:scale-110 transition-all duration-500 cursor-pointer">{'   o\n  /|\\\n  / \\'}</div>
-                <div className="bg-white border-2 border-black rounded-full p-2 relative">
-                  <div className="text-xs font-bold">"Huh? I got a DM?"</div>
-                  <div className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-black"></div>
-                </div>
-              </div>
-              <div className="bg-black text-green-400 p-2 rounded font-mono text-xs mb-2">
-                📨 New encrypted message from: Anonymous
-              </div>
-              <div className="bg-yellow-200 border-2 border-black rounded p-2 text-xs">
-                eK9x...mP2q [click to decrypt]
-              </div>
-              <div className="text-xs text-gray-600 mt-2 italic">
-                Deployer sees they have an encrypted message waiting
-              </div>
-            </div>
-
-            {/* Step 4 */}
-            <div className="text-center p-6 border-3 border-black rounded-xl bg-white transform hover:scale-105 transition-all duration-300 animate-float relative" style={{animationDelay: '0.3s'}}>
-              <div className="border-2 border-black rounded-lg p-2 mb-4 bg-gray-50">
-                <div className="text-xl font-bold mb-2">4. Decrypt & Read</div>
-                <div className="font-mono text-2xl whitespace-pre mb-3 text-green-600 hover:animate-bounce hover:text-green-400 hover:scale-150 hover:-rotate-6 transition-all duration-300 cursor-pointer">{'   ☻\n  /|\\\n  / \\'}</div>
-                <div className="bg-white border-2 border-black rounded-full p-2 relative">
-                  <div className="text-xs font-bold">"Cool! A fan message!"</div>
-                  <div className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-black"></div>
-                </div>
-              </div>
-              <div className="bg-black text-green-400 p-2 rounded font-mono text-xs mb-2">
-                📨 "Wen moon? Love the project!" [decrypted successfully]
-              </div>
-              <div className="border-2 border-black border-dashed rounded p-2 text-xs">
-                "This is awesome!"
-              </div>
-              <div className="text-xs text-gray-600 mt-2 italic">
-                Deployer uses their wallet to decrypt and read the message
-              </div>
-            </div>
+          <div className="text-center mb-12">
+            <h2 className="text-4xl font-bold mb-4 -rotate-1">🚀 How DM the DEV Works</h2>
+            <div className="w-32 h-1 bg-black mx-auto rounded-full"></div>
           </div>
-          
-          <div className="text-center p-6 bg-white border-3 border-black rounded-xl transform hover:rotate-1 transition-all duration-300 max-w-4xl mx-auto">
-            <div className="flex justify-center mb-4">
-              <div className="font-mono text-3xl whitespace-pre">{'   🛡️\n  /|\\\n  / \\'}</div>
+          <div className="max-w-7xl mx-auto">
+            <div className="grid lg:grid-cols-4 md:grid-cols-2 grid-cols-1 gap-6 mb-8">
+              {/* Step 1 */}
+              <div className="text-center p-6 border-3 border-black rounded-xl bg-white transform hover:scale-105 transition-all duration-300 animate-float relative mx-auto w-full max-w-sm" style={{animationDelay: '0s'}}>
+                <div className="border-2 border-black rounded-lg p-2 mb-4 bg-gray-50">
+                  <div className="text-xl font-bold mb-2">1. Find Token Deployer</div>
+                  <div className="font-mono text-2xl whitespace-pre mb-3 hover:animate-bounce hover:text-blue-600 hover:scale-125 transition-all duration-300 cursor-pointer">{'   o\n  /|\\\n  / \\'}</div>
+                  <div className="bg-white border-2 border-black rounded-full p-2 relative">
+                    <div className="text-xs font-bold">"I want to contact the dev of $MOON!"</div>
+                    <div className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-black"></div>
+                  </div>
+                </div>
+                <div className="bg-black text-green-400 p-2 rounded font-mono text-xs">
+                  &gt; pump.fun token:<br/>
+                  9xK...Ab2 → deployer:<br/>
+                  Bb7...Xy9
+                </div>
+                <div className="text-xs mt-2 font-bold">[wallet] Bb7...Xy9</div>
+                <div className="text-xs text-gray-600 mt-2 italic">
+                  Paste any Pump.fun token address to find who deployed it
+                </div>
+              </div>
+
+              {/* Step 2 */}
+              <div className="text-center p-6 border-3 border-black rounded-xl bg-white transform hover:scale-105 transition-all duration-300 animate-float relative mx-auto w-full max-w-sm" style={{animationDelay: '0.1s'}}>
+                <div className="border-2 border-black rounded-lg p-2 mb-4 bg-gray-50">
+                  <div className="text-xl font-bold mb-2">2. Send Anonymous Message</div>
+                  <div className="font-mono text-2xl whitespace-pre mb-3 hover:animate-pulse hover:text-yellow-600 hover:rotate-12 transition-all duration-300 cursor-pointer">{'   o\n  /|\\\n  / \\'}</div>
+                  <div className="bg-white border-2 border-black rounded-full p-2 relative">
+                    <div className="text-xs font-bold">"Wen moon? Love the project!"</div>
+                    <div className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-black"></div>
+                  </div>
+                </div>
+                <div className="text-sm mb-2">↓ [encrypt]</div>
+                <div className="bg-yellow-200 border-2 border-black rounded p-2 text-xs font-mono">
+                  eK9x...mP2q [encrypted data]
+                </div>
+                <div className="border-2 border-black border-dashed rounded p-2 mt-2 text-xs">
+                  Anonymous & Secure!
+                </div>
+                <div className="text-xs text-gray-600 mt-2 italic">
+                  Your message gets encrypted and sent anonymously
+                </div>
+              </div>
+
+              {/* Step 3 */}
+              <div className="text-center p-6 border-3 border-black rounded-xl bg-white transform hover:scale-105 transition-all duration-300 animate-float relative mx-auto w-full max-w-sm" style={{animationDelay: '0.2s'}}>
+                <div className="border-2 border-black rounded-lg p-2 mb-4 bg-gray-50">
+                  <div className="text-xl font-bold mb-2">3. Deployer Gets Notification</div>
+                  <div className="font-mono text-2xl whitespace-pre mb-3 text-red-500 hover:animate-spin hover:text-orange-500 hover:scale-110 transition-all duration-500 cursor-pointer">{'   o\n  /|\\\n  / \\'}</div>
+                  <div className="bg-white border-2 border-black rounded-full p-2 relative">
+                    <div className="text-xs font-bold">"Huh? I got a DM?"</div>
+                    <div className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-black"></div>
+                  </div>
+                </div>
+                <div className="bg-black text-green-400 p-2 rounded font-mono text-xs mb-2">
+                  📨 New encrypted message from: Anonymous
+                </div>
+                <div className="bg-yellow-200 border-2 border-black rounded p-2 text-xs">
+                  eK9x...mP2q [click to decrypt]
+                </div>
+                <div className="text-xs text-gray-600 mt-2 italic">
+                  Deployer sees they have an encrypted message waiting
+                </div>
+              </div>
+
+              {/* Step 4 */}
+              <div className="text-center p-6 border-3 border-black rounded-xl bg-white transform hover:scale-105 transition-all duration-300 animate-float relative mx-auto w-full max-w-sm" style={{animationDelay: '0.3s'}}>
+                <div className="border-2 border-black rounded-lg p-2 mb-4 bg-gray-50">
+                  <div className="text-xl font-bold mb-2">4. Decrypt & Read</div>
+                  <div className="font-mono text-2xl whitespace-pre mb-3 text-green-600 hover:animate-bounce hover:text-green-400 hover:scale-150 hover:-rotate-6 transition-all duration-300 cursor-pointer">{'   ☻\n  /|\\\n  / \\'}</div>
+                  <div className="bg-white border-2 border-black rounded-full p-2 relative">
+                    <div className="text-xs font-bold">"Cool! A fan message!"</div>
+                    <div className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-black"></div>
+                  </div>
+                </div>
+                <div className="bg-black text-green-400 p-2 rounded font-mono text-xs mb-2">
+                  📨 "Wen moon? Love the project!" [decrypted successfully]
+                </div>
+                <div className="border-2 border-black border-dashed rounded p-2 text-xs">
+                  "This is awesome!"
+                </div>
+                <div className="text-xs text-gray-600 mt-2 italic">
+                  Deployer uses their wallet to decrypt and read the message
+                </div>
+              </div>
             </div>
-            <div className="font-bold text-lg mb-2">Why It's Secure & Anonymous</div>
-            <div className="text-sm text-gray-700 max-w-2xl mx-auto">
-              Messages are encrypted using <span className="font-mono bg-yellow-100 px-1">signature-derived keys</span>. 
-              Only the deployer's wallet can decrypt them. No personal info shared - complete anonymity guaranteed! 
-              It's like passing secret notes in class, but with military-grade crypto! 🤓
+            
+            <div className="text-center p-6 bg-white border-3 border-black rounded-xl transform hover:rotate-1 transition-all duration-300 max-w-4xl mx-auto">
+              <div className="flex justify-center mb-4">
+                <div className="font-mono text-3xl whitespace-pre">{'   🛡️\n  /|\\\n  / \\'}</div>
+              </div>
+              <div className="font-bold text-lg mb-2">Why It's Secure & Anonymous</div>
+              <div className="text-sm text-gray-700 max-w-2xl mx-auto">
+                Messages are encrypted using <span className="font-mono bg-yellow-100 px-1">signature-derived keys</span>. 
+                Only the deployer's wallet can decrypt them. No personal info shared - complete anonymity guaranteed! 
+                It's like passing secret notes in class, but with military-grade crypto! 🤓
+              </div>
             </div>
           </div>
         </section>
@@ -586,51 +592,53 @@ export default function Home() {
         <ClientOnly>
           <>
             {/* Token Lookup */}
-            <section className="section max-w-4xl mx-auto" id="token-lookup">
-              <h2 className="section-title text-center">[🔍] Token Lookup</h2>
-              <div className="space-y-4">
-                <input
-                  type="text"
-                  className="w-full p-4 border-3 border-black rounded-xl font-comic -rotate-[0.2deg] animated-input"
-                  placeholder="Enter Solana Token Address"
-                  value={tokenAddress}
-                  onChange={(e) => setTokenAddress(e.target.value)}
-                />
-                <button
-                  onClick={handleFindDeployer}
-                  disabled={isLoading}
-                  className="bg-white border-3 border-black py-4 px-6 font-bold rounded-xl rotate-[0.5deg] hover:animate-bounce-light w-full disabled:opacity-50 disabled:cursor-not-allowed interactive-btn"
-                >
-                  {isLoading ? 'Searching... 🔍' : 'Find Deployer 🧠 ↗'}
-                </button>
-              </div>
-              {deployerInfo && (
-                <div className={`mt-5 border-3 border-black rounded-xl p-5 -rotate-1 ${
-                  deployerInfo.error ? 'bg-[#ffe6e6]' : 'bg-[#fffacd]'
-                }`}>
-                  {deployerInfo.error ? (
-                    <div className="text-red-600">{deployerInfo.error}</div>
-                  ) : (
-                    <>
-                      <div><strong>Token:</strong> {deployerInfo.name} ({deployerInfo.symbol})</div>
-                      <div><strong>Deployer:</strong> {deployerInfo.address}</div>
-                      {typeof deployerInfo.creatorSolBalance === 'number' && (
-                        <div><strong>Deployer SOL Balance:</strong> {deployerInfo.creatorSolBalance.toFixed(2)} SOL</div>
-                      )}
-                      {typeof deployerInfo.marketCap === 'number' && (
-                        <div><strong>Token Price:</strong> ${deployerInfo.marketCap.toLocaleString('en-US', {
-                          minimumFractionDigits: 2,
-                          maximumFractionDigits: 6,
-                        })}</div>
-                      )}
-                    </>
-                  )}
+            <section className="section" id="token-lookup">
+              <div className="max-w-2xl mx-auto">
+                <h2 className="text-3xl font-bold text-center mb-8 -rotate-1">[🔍] Token Lookup</h2>
+                <div className="space-y-4">
+                  <input
+                    type="text"
+                    className="w-full p-4 border-3 border-black rounded-xl font-comic -rotate-[0.2deg] animated-input"
+                    placeholder="Enter Solana Token Address"
+                    value={tokenAddress}
+                    onChange={(e) => setTokenAddress(e.target.value)}
+                  />
+                  <button
+                    onClick={handleFindDeployer}
+                    disabled={isLoading}
+                    className="bg-white border-3 border-black py-4 px-6 font-bold rounded-xl rotate-[0.5deg] hover:animate-bounce-light w-full disabled:opacity-50 disabled:cursor-not-allowed interactive-btn"
+                  >
+                    {isLoading ? 'Searching... 🔍' : 'Find Deployer 🧠 ↗'}
+                  </button>
                 </div>
-              )}
+                {deployerInfo && (
+                  <div className={`mt-5 border-3 border-black rounded-xl p-5 -rotate-1 ${
+                    deployerInfo.error ? 'bg-[#ffe6e6]' : 'bg-[#fffacd]'
+                  }`}>
+                    {deployerInfo.error ? (
+                      <div className="text-red-600">{deployerInfo.error}</div>
+                    ) : (
+                      <>
+                        <div><strong>Token:</strong> {deployerInfo.name} ({deployerInfo.symbol})</div>
+                        <div><strong>Deployer:</strong> {deployerInfo.address}</div>
+                        {typeof deployerInfo.creatorSolBalance === 'number' && (
+                          <div><strong>Deployer SOL Balance:</strong> {deployerInfo.creatorSolBalance.toFixed(2)} SOL</div>
+                        )}
+                        {typeof deployerInfo.marketCap === 'number' && (
+                          <div><strong>Token Price:</strong> ${deployerInfo.marketCap.toLocaleString('en-US', {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 6,
+                          })}</div>
+                        )}
+                      </>
+                    )}
+                  </div>
+                )}
+              </div>
             </section>
 
             {/* Message Tabs */}
-            <div className="flex gap-2 mb-4 max-w-4xl mx-auto">
+            <div className="flex gap-2 mb-4 max-w-2xl mx-auto">
               <button
                 onClick={() => setActiveTab('send')}
                 className={`flex-1 py-3 px-6 font-bold rounded-t-xl border-3 border-black transition-all ${
@@ -655,182 +663,188 @@ export default function Home() {
 
             {/* Send Message Section */}
             {activeTab === 'send' && (
-              <section className="section max-w-4xl mx-auto">
-                <h2 className="section-title text-center">[💌] Send Message to Developer</h2>
-                
-                {/* Step 1: Derive Recipient Key */}
-                <div className="mb-8 p-5 border-3 border-black rounded-xl bg-yellow-50 -rotate-[0.5deg]">
-                  <h3 className="text-xl font-bold mb-3">🔐 Step 1: Derive Recipient Key</h3>
-                  <p className="mb-4 text-gray-600">
-                    For secure messaging, we need to derive a signature-based key for the recipient.
-                  </p>
-                  <button
-                    onClick={handleDeriveRecipientKey}
-                    disabled={!deployerInfo?.address || !!deployerInfo?.error || !connected}
-                    className={`py-3 px-6 font-bold rounded-xl border-3 border-black transition-all interactive-btn ${
-                      isDerivedKeyReady 
-                        ? 'bg-green-200 text-green-800' 
-                        : 'bg-white hover:bg-gray-50'
-                    } disabled:opacity-50 disabled:cursor-not-allowed`}
-                  >
-                    {isDerivedKeyReady ? '✅ Key Derived' : '🔑 Derive Recipient Key'}
-                  </button>
+              <section className="section">
+                <div className="max-w-2xl mx-auto">
+                  <h2 className="text-3xl font-bold text-center mb-8 -rotate-1">[💌] Send Message to Developer</h2>
                   
-                  {recipientKey && (
-                    <div className="mt-3 p-3 bg-white border-2 border-black rounded-lg animate-float">
-                      <div className="text-sm text-gray-600 mb-1">Recipient key derived:</div>
-                      <div className="font-mono text-sm break-all">
-                        {recipientKey.slice(0, 8)}...{recipientKey.slice(-8)}
+                  {/* Step 1: Derive Recipient Key */}
+                  <div className="mb-8 p-5 border-3 border-black rounded-xl bg-yellow-50 -rotate-[0.5deg]">
+                    <h3 className="text-xl font-bold mb-3">🔐 Step 1: Derive Recipient Key</h3>
+                    <p className="mb-4 text-gray-600">
+                      For secure messaging, we need to derive a signature-based key for the recipient.
+                    </p>
+                    <button
+                      onClick={handleDeriveRecipientKey}
+                      disabled={!deployerInfo?.address || !!deployerInfo?.error || !connected}
+                      className={`py-3 px-6 font-bold rounded-xl border-3 border-black transition-all interactive-btn ${
+                        isDerivedKeyReady 
+                          ? 'bg-green-200 text-green-800' 
+                          : 'bg-white hover:bg-gray-50'
+                      } disabled:opacity-50 disabled:cursor-not-allowed`}
+                    >
+                      {isDerivedKeyReady ? '✅ Key Derived' : '🔑 Derive Recipient Key'}
+                    </button>
+                    
+                    {recipientKey && (
+                      <div className="mt-3 p-3 bg-white border-2 border-black rounded-lg animate-float">
+                        <div className="text-sm text-gray-600 mb-1">Recipient key derived:</div>
+                        <div className="font-mono text-sm break-all">
+                          {recipientKey.slice(0, 8)}...{recipientKey.slice(-8)}
+                        </div>
                       </div>
-                    </div>
-                  )}
+                    )}
+                    
+                    {!connected && (
+                      <div className="mt-2 text-red-500 text-sm">
+                        Please connect your wallet to derive keys
+                      </div>
+                    )}
+                    
+                    {!deployerInfo && (
+                      <div className="mt-2 text-gray-500 text-sm">
+                        Please find a deployer first using the token lookup above
+                      </div>
+                    )}
+                  </div>
                   
-                  {!connected && (
-                    <div className="mt-2 text-red-500 text-sm">
-                      Please connect your wallet to derive keys
-                    </div>
-                  )}
-                  
-                  {!deployerInfo && (
-                    <div className="mt-2 text-gray-500 text-sm">
-                      Please find a deployer first using the token lookup above
-                    </div>
-                  )}
-                </div>
-                
-                <div className="space-y-4">
-                  <textarea
-                    className="w-full p-4 border-3 border-black rounded-xl font-comic resize-y min-h-[120px] bg-white animated-input"
-                    placeholder="Write your message to the developer..."
-                    value={message}
-                    onChange={(e) => setMessage(e.target.value)}
-                    disabled={!connected || isSending || !isDerivedKeyReady}
-                  />
-                  <div className="flex gap-4">
-                    <input
-                      type="number"
-                      className="flex-1 p-4 border-3 border-black rounded-xl font-comic bg-white animated-input"
-                      placeholder="Tip amount in SOL (optional)"
-                      value={tipAmount}
-                      onChange={(e) => setTipAmount(e.target.value)}
+                  <div className="space-y-4">
+                    <textarea
+                      className="w-full p-4 border-3 border-black rounded-xl font-comic resize-y min-h-[120px] bg-white animated-input"
+                      placeholder="Write your message to the developer..."
+                      value={message}
+                      onChange={(e) => setMessage(e.target.value)}
                       disabled={!connected || isSending || !isDerivedKeyReady}
-                      min="0"
-                      step="0.01"
                     />
-                  </div>
-                  <div className="flex gap-4">
-                    <button
-                      onClick={() => sendMessage(false)}
-                      disabled={!connected || !message || isSending || !isDerivedKeyReady}
-                      className="flex-1 bg-white border-3 border-black py-4 px-6 font-bold rounded-xl rotate-[0.5deg] hover:animate-bounce-light disabled:opacity-50 disabled:cursor-not-allowed interactive-btn"
-                    >
-                      {isSending ? '⏳ Sending...' : '💬 Send Message Only'}
-                    </button>
-                    <button
-                      onClick={() => sendMessage(true)}
-                      disabled={!connected || !message || isSending || !(tipAmount && tipAmount.trim()) || !isDerivedKeyReady}
-                      className="flex-1 bg-white border-3 border-black py-4 px-6 font-bold rounded-xl -rotate-[0.5deg] hover:animate-bounce-light disabled:opacity-50 disabled:cursor-not-allowed interactive-btn"
-                    >
-                      {isSending ? '⏳ Sending...' : `💸 Send Message + ${tipAmount ? `${tipAmount} SOL` : 'Tip'}`}
-                    </button>
-                  </div>
-                  {!connected && (
-                    <div className="text-center text-red-500">
-                      Please connect your wallet to send messages!
+                    <div className="flex gap-4">
+                      <input
+                        type="number"
+                        className="flex-1 p-4 border-3 border-black rounded-xl font-comic bg-white animated-input"
+                        placeholder="Tip amount in SOL (optional)"
+                        value={tipAmount}
+                        onChange={(e) => setTipAmount(e.target.value)}
+                        disabled={!connected || isSending || !isDerivedKeyReady}
+                        min="0"
+                        step="0.01"
+                      />
                     </div>
-                  )}
-                  {!isDerivedKeyReady && connected && (
-                    <div className="text-center text-orange-500">
-                      Please derive the recipient key first!
+                    <div className="flex gap-4">
+                      <button
+                        onClick={() => sendMessage(false)}
+                        disabled={!connected || !message || isSending || !isDerivedKeyReady}
+                        className="flex-1 bg-white border-3 border-black py-4 px-6 font-bold rounded-xl rotate-[0.5deg] hover:animate-bounce-light disabled:opacity-50 disabled:cursor-not-allowed interactive-btn"
+                      >
+                        {isSending ? '⏳ Sending...' : '💬 Send Message Only'}
+                      </button>
+                      <button
+                        onClick={() => sendMessage(true)}
+                        disabled={!connected || !message || isSending || !(tipAmount && tipAmount.trim()) || !isDerivedKeyReady}
+                        className="flex-1 bg-white border-3 border-black py-4 px-6 font-bold rounded-xl -rotate-[0.5deg] hover:animate-bounce-light disabled:opacity-50 disabled:cursor-not-allowed interactive-btn"
+                      >
+                        {isSending ? '⏳ Sending...' : `💸 Send Message + ${tipAmount ? `${tipAmount} SOL` : 'Tip'}`}
+                      </button>
                     </div>
-                  )}
+                    {!connected && (
+                      <div className="text-center text-red-500">
+                        Please connect your wallet to send messages!
+                      </div>
+                    )}
+                    {!isDerivedKeyReady && connected && (
+                      <div className="text-center text-orange-500">
+                        Please derive the recipient key first!
+                      </div>
+                    )}
+                  </div>
                 </div>
               </section>
             )}
 
             {/* Decrypt Message Section */}
             {activeTab === 'decrypt' && (
-              <section className="section max-w-4xl mx-auto">
-                <h2 className="section-title text-center">[🔑] Decrypt Messages</h2>
-                <p className="mb-5 text-gray-600 -rotate-[0.3deg] text-center">
-                  Got an encrypted message? Paste it here to decrypt! [detective]
-                </p>
-                <div className="space-y-4">
-                  <div className="bg-white border-4 border-black rounded-[30px] p-5 -rotate-[0.3deg] hover:rotate-1 transition-all duration-300">
-                    <textarea
-                      className="w-full min-h-[100px] font-comic resize-y bg-transparent animated-input"
-                      placeholder='Paste the full encrypted message JSON here, like: {"ciphertext": "...", "nonce": "...", "ephemeralPublicKey": "..."}'
-                      value={encryptedMessage}
-                      onChange={(e) => setEncryptedMessage(e.target.value)}
-                    />
-                  </div>
-                  <button
-                    onClick={handleDecryptPastedMessage}
-                    className="bg-white border-3 border-black py-4 px-8 font-bold rounded-xl rotate-1 hover:animate-bounce-light w-full interactive-btn"
-                  >
-                    Decrypt Message [unlock] ↗
-                  </button>
-                  {decryptedMessage && (
-                    <div className="mt-5 bg-[#e6f7ff] border-3 border-black rounded-xl p-5 -rotate-1">
-                      <div><strong>Decrypted Message:</strong></div>
-                      <pre className="mt-2 italic whitespace-pre-wrap break-all">{decryptedMessage}</pre>
+              <section className="section">
+                <div className="max-w-2xl mx-auto">
+                  <h2 className="text-3xl font-bold text-center mb-8 -rotate-1">[🔑] Decrypt Messages</h2>
+                  <p className="mb-5 text-gray-600 text-center">
+                    Got an encrypted message? Paste it here to decrypt! [detective]
+                  </p>
+                  <div className="space-y-4">
+                    <div className="bg-white border-4 border-black rounded-[30px] p-5 -rotate-[0.3deg] hover:rotate-1 transition-all duration-300">
+                      <textarea
+                        className="w-full min-h-[100px] font-comic resize-y bg-transparent animated-input"
+                        placeholder='Paste the full encrypted message JSON here, like: {"ciphertext": "...", "nonce": "...", "ephemeralPublicKey": "..."}'
+                        value={encryptedMessage}
+                        onChange={(e) => setEncryptedMessage(e.target.value)}
+                      />
                     </div>
-                  )}
+                    <button
+                      onClick={handleDecryptPastedMessage}
+                      className="bg-white border-3 border-black py-4 px-8 font-bold rounded-xl rotate-1 hover:animate-bounce-light w-full interactive-btn"
+                    >
+                      Decrypt Message [unlock] ↗
+                    </button>
+                    {decryptedMessage && (
+                      <div className="mt-5 bg-[#e6f7ff] border-3 border-black rounded-xl p-5 -rotate-1">
+                        <div><strong>Decrypted Message:</strong></div>
+                        <pre className="mt-2 italic whitespace-pre-wrap break-all">{decryptedMessage}</pre>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </section>
             )}
 
             {/* Messages Section */}
             {connected && publicKey && (
-              <section className="section mt-8 max-w-4xl mx-auto" id="my-messages">
-                <h2 className="section-title text-center">[📬] Your Messages</h2>
-                <div className="space-y-4">
-                  {messages.length === 0 ? (
-                    <div className="text-center text-gray-500 py-8 animate-pulse-gentle">
-                      No messages found. Share your token with others to receive messages!
-                    </div>
-                  ) : (
-                    messages.map((msg, index) => (
-                      <div key={msg.id} className="border-3 border-black rounded-xl p-4 bg-white hover:rotate-1 transition-all duration-300 hover:scale-[1.02] animate-float" style={{animationDelay: `${index * 0.1}s`}}>
-                        <div className="flex justify-between items-start mb-2">
-                          <div>
-                            <div className="font-bold">From: {msg.senderAddress.slice(0, 4)}...{msg.senderAddress.slice(-4)}</div>
-                            <div className="text-sm text-gray-600">
-                              {msg.createdAt ? new Date(msg.createdAt).toUTCString() : 'Unknown date'}
+              <section className="section mt-8" id="my-messages">
+                <div className="max-w-3xl mx-auto">
+                  <h2 className="text-3xl font-bold text-center mb-8 -rotate-1">[📬] Your Messages</h2>
+                  <div className="space-y-4">
+                    {messages.length === 0 ? (
+                      <div className="text-center text-gray-500 py-8 animate-pulse-gentle">
+                        No messages found. Share your token with others to receive messages!
+                      </div>
+                    ) : (
+                      messages.map((msg, index) => (
+                        <div key={msg.id} className="border-3 border-black rounded-xl p-4 bg-white hover:rotate-1 transition-all duration-300 hover:scale-[1.02] animate-float" style={{animationDelay: `${index * 0.1}s`}}>
+                          <div className="flex justify-between items-start mb-2">
+                            <div>
+                              <div className="font-bold">From: {msg.senderAddress.slice(0, 4)}...{msg.senderAddress.slice(-4)}</div>
+                              <div className="text-sm text-gray-600">
+                                {msg.createdAt ? new Date(msg.createdAt).toUTCString() : 'Unknown date'}
+                              </div>
                             </div>
                           </div>
+                          
+                          {decryptedMessages[msg.id!] === 'DECRYPT_READY' ? (
+                            <DecryptedMessage
+                              encryptedData={{
+                                ciphertext: msg.ciphertext,
+                                nonce: msg.nonce,
+                                ephemeralPublicKey: msg.ephemeralPublicKey
+                              }}
+                              wallet={wallet}
+                              senderAddress={msg.senderAddress}
+                              encryptedForPublicKey={msg.encryptedForPublicKey}
+                            />
+                          ) : decryptedMessages[msg.id!] ? (
+                            <div className={`mt-2 p-3 rounded-lg text-sm break-all ${
+                              decryptedMessages[msg.id!].startsWith('[❌') ? 'bg-red-50 text-red-600' :
+                              'bg-blue-50 text-blue-800'
+                            }`}>
+                              {decryptedMessages[msg.id!]}
+                            </div>
+                          ) : (
+                            <button
+                              onClick={() => handleDecryptMessageFromList(msg.id!)}
+                              className="w-full mt-2 py-2 px-4 border-2 border-black rounded-lg bg-white hover:bg-gray-50 transition-colors interactive-btn"
+                              disabled={!connected}
+                            >
+                              {connected ? '�� Decrypt Message' : '🔒 Connect Wallet to Decrypt'}
+                            </button>
+                          )}
                         </div>
-                        
-                        {decryptedMessages[msg.id!] === 'DECRYPT_READY' ? (
-                          <DecryptedMessage
-                            encryptedData={{
-                              ciphertext: msg.ciphertext,
-                              nonce: msg.nonce,
-                              ephemeralPublicKey: msg.ephemeralPublicKey
-                            }}
-                            wallet={wallet}
-                            senderAddress={msg.senderAddress}
-                            encryptedForPublicKey={msg.encryptedForPublicKey}
-                          />
-                        ) : decryptedMessages[msg.id!] ? (
-                          <div className={`mt-2 p-3 rounded-lg text-sm break-all ${
-                            decryptedMessages[msg.id!].startsWith('[❌') ? 'bg-red-50 text-red-600' :
-                            'bg-blue-50 text-blue-800'
-                          }`}>
-                            {decryptedMessages[msg.id!]}
-                          </div>
-                        ) : (
-                          <button
-                            onClick={() => handleDecryptMessageFromList(msg.id!)}
-                            className="w-full mt-2 py-2 px-4 border-2 border-black rounded-lg bg-white hover:bg-gray-50 transition-colors interactive-btn"
-                            disabled={!connected}
-                          >
-                            {connected ? '🔑 Decrypt Message' : '🔒 Connect Wallet to Decrypt'}
-                          </button>
-                        )}
-                      </div>
-                    ))
-                  )}
+                      ))
+                    )}
+                  </div>
                 </div>
               </section>
             )}
