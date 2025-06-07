@@ -46,6 +46,23 @@ export default function Home() {
   const [activeTab, setActiveTab] = useState<'send' | 'decrypt'>('send');
   const [messages, setMessages] = useState<EncryptedMessage[]>([]);
   const [decryptedMessages, setDecryptedMessages] = useState<Record<string, string>>({});
+  const [currentStickmanPose, setCurrentStickmanPose] = useState(0);
+
+  // Different stickman poses for animation
+  const stickmanPoses = [
+    '   o\n  /|\\\n  / \\',      // normal standing
+    '   o\n  \\|/\n  / \\',      // arms up celebrating
+    '   o\n   |\\\n  / \\',      // waving
+    '   o\n  /|\n  / \\',       // pointing
+    '   O\n  /|\\\n  | |',      // surprised standing straight
+    '   >\n  /|\\\n  / \\',      // winking
+    '   o\n  /|o\n  / \\',      // holding something
+    '   @\n  /|\\\n  /_\\',      // dizzy/confused
+    '   o\n <-|->\n  / \\',      // arms out wide
+    '   o\n  /|\\\n   ^',        // jumping
+    '   o\n  \\|/\n   /',        // dancing
+    '   ☻\n  /|\\\n  / \\'       // happy face
+  ];
 
   const handleFindDeployer = async () => {
     if (!tokenAddress) return;
@@ -311,6 +328,15 @@ export default function Home() {
     };
   }, [publicKey?.toBase58()]);
 
+  // Animate stickman poses
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentStickmanPose((prev) => (prev + 1) % stickmanPoses.length);
+    }, 3000); // Change pose every 3 seconds
+
+    return () => clearInterval(interval);
+  }, [stickmanPoses.length]);
+
   // Update the handleDecryptMessage function
   const handleDecryptMessageFromList = useCallback(async (messageId: string) => {
     if (!connected || !publicKey || !wallet) {
@@ -402,9 +428,9 @@ export default function Home() {
       <div className="max-w-7xl mx-auto p-5">
         {/* Stickman */}
         <div className="flex items-center justify-center my-10 gap-8">
-          <div className="font-mono text-4xl whitespace-pre -rotate-2">
-            {'   o\n  /|\\\n  / \\'}</div>
-          <div className="bg-white border-3 border-black rounded-[20px] p-4 max-w-[350px] rotate-1 relative">
+          <div className="font-mono text-4xl whitespace-pre -rotate-2 transform transition-all duration-500 hover:scale-110 hover:rotate-6 cursor-pointer animate-bounce-slow">
+            {stickmanPoses[currentStickmanPose]}</div>
+          <div className="bg-white border-3 border-black rounded-[20px] p-4 max-w-[350px] rotate-1 relative transform transition-all duration-300 hover:rotate-3 hover:scale-105 animate-wiggle-slow">
             Hey! I'm your ugly but trustworthy DEV mascot! [nerd face]
           </div>
         </div>
@@ -417,7 +443,7 @@ export default function Home() {
               <div className="space-y-4">
                 <input
                   type="text"
-                  className="w-full p-4 border-3 border-black rounded-xl font-comic -rotate-[0.2deg]"
+                  className="w-full p-4 border-3 border-black rounded-xl font-comic -rotate-[0.2deg] animated-input"
                   placeholder="Enter Solana Token Address"
                   value={tokenAddress}
                   onChange={(e) => setTokenAddress(e.target.value)}
@@ -425,7 +451,7 @@ export default function Home() {
                 <button
                   onClick={handleFindDeployer}
                   disabled={isLoading}
-                  className="bg-white border-3 border-black py-4 px-6 font-bold rounded-xl rotate-[0.5deg] hover:animate-bounce-light w-full disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="bg-white border-3 border-black py-4 px-6 font-bold rounded-xl rotate-[0.5deg] hover:animate-bounce-light w-full disabled:opacity-50 disabled:cursor-not-allowed interactive-btn"
                 >
                   {isLoading ? 'Searching... 🔍' : 'Find Deployer 🧠 ↗'}
                 </button>
@@ -493,7 +519,7 @@ export default function Home() {
                   <button
                     onClick={handleDeriveRecipientKey}
                     disabled={!deployerInfo?.address || !!deployerInfo?.error || !connected}
-                    className={`py-3 px-6 font-bold rounded-xl border-3 border-black transition-all ${
+                    className={`py-3 px-6 font-bold rounded-xl border-3 border-black transition-all interactive-btn ${
                       isDerivedKeyReady 
                         ? 'bg-green-200 text-green-800' 
                         : 'bg-white hover:bg-gray-50'
@@ -503,7 +529,7 @@ export default function Home() {
                   </button>
                   
                   {recipientKey && (
-                    <div className="mt-3 p-3 bg-white border-2 border-black rounded-lg">
+                    <div className="mt-3 p-3 bg-white border-2 border-black rounded-lg animate-float">
                       <div className="text-sm text-gray-600 mb-1">Recipient key derived:</div>
                       <div className="font-mono text-sm break-all">
                         {recipientKey.slice(0, 8)}...{recipientKey.slice(-8)}
@@ -526,7 +552,7 @@ export default function Home() {
                 
                 <div className="space-y-4">
                   <textarea
-                    className="w-full p-4 border-3 border-black rounded-xl font-comic resize-y min-h-[120px] bg-white"
+                    className="w-full p-4 border-3 border-black rounded-xl font-comic resize-y min-h-[120px] bg-white animated-input"
                     placeholder="Write your message to the developer..."
                     value={message}
                     onChange={(e) => setMessage(e.target.value)}
@@ -535,7 +561,7 @@ export default function Home() {
                   <div className="flex gap-4">
                     <input
                       type="number"
-                      className="flex-1 p-4 border-3 border-black rounded-xl font-comic bg-white"
+                      className="flex-1 p-4 border-3 border-black rounded-xl font-comic bg-white animated-input"
                       placeholder="Tip amount in SOL (optional)"
                       value={tipAmount}
                       onChange={(e) => setTipAmount(e.target.value)}
@@ -548,14 +574,14 @@ export default function Home() {
                     <button
                       onClick={() => sendMessage(false)}
                       disabled={!connected || !message || isSending || !isDerivedKeyReady}
-                      className="flex-1 bg-white border-3 border-black py-4 px-6 font-bold rounded-xl rotate-[0.5deg] hover:animate-bounce-light disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="flex-1 bg-white border-3 border-black py-4 px-6 font-bold rounded-xl rotate-[0.5deg] hover:animate-bounce-light disabled:opacity-50 disabled:cursor-not-allowed interactive-btn"
                     >
                       {isSending ? '⏳ Sending...' : '💬 Send Message Only'}
                     </button>
                     <button
                       onClick={() => sendMessage(true)}
                       disabled={!connected || !message || isSending || !(tipAmount && tipAmount.trim()) || !isDerivedKeyReady}
-                      className="flex-1 bg-white border-3 border-black py-4 px-6 font-bold rounded-xl -rotate-[0.5deg] hover:animate-bounce-light disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="flex-1 bg-white border-3 border-black py-4 px-6 font-bold rounded-xl -rotate-[0.5deg] hover:animate-bounce-light disabled:opacity-50 disabled:cursor-not-allowed interactive-btn"
                     >
                       {isSending ? '⏳ Sending...' : `💸 Send Message + ${tipAmount ? `${tipAmount} SOL` : 'Tip'}`}
                     </button>
@@ -582,9 +608,9 @@ export default function Home() {
                   Got an encrypted message? Paste it here to decrypt! [detective]
                 </p>
                 <div className="space-y-4">
-                  <div className="bg-white border-4 border-black rounded-[30px] p-5 -rotate-[0.3deg]">
+                  <div className="bg-white border-4 border-black rounded-[30px] p-5 -rotate-[0.3deg] hover:rotate-1 transition-all duration-300">
                     <textarea
-                      className="w-full min-h-[100px] font-comic resize-y bg-transparent"
+                      className="w-full min-h-[100px] font-comic resize-y bg-transparent animated-input"
                       placeholder='Paste the full encrypted message JSON here, like: {"ciphertext": "...", "nonce": "...", "ephemeralPublicKey": "..."}'
                       value={encryptedMessage}
                       onChange={(e) => setEncryptedMessage(e.target.value)}
@@ -592,7 +618,7 @@ export default function Home() {
                   </div>
                   <button
                     onClick={handleDecryptPastedMessage}
-                    className="bg-white border-3 border-black py-4 px-8 font-bold rounded-xl rotate-1 hover:animate-bounce-light w-full"
+                    className="bg-white border-3 border-black py-4 px-8 font-bold rounded-xl rotate-1 hover:animate-bounce-light w-full interactive-btn"
                   >
                     Decrypt Message [unlock] ↗
                   </button>
@@ -612,12 +638,12 @@ export default function Home() {
                 <h2 className="section-title">[📬] Your Messages</h2>
                 <div className="space-y-4">
                   {messages.length === 0 ? (
-                    <div className="text-center text-gray-500 py-8">
+                    <div className="text-center text-gray-500 py-8 animate-pulse-gentle">
                       No messages found. Share your token with others to receive messages!
                     </div>
                   ) : (
-                    messages.map((msg) => (
-                      <div key={msg.id} className="border-3 border-black rounded-xl p-4 bg-white">
+                    messages.map((msg, index) => (
+                      <div key={msg.id} className="border-3 border-black rounded-xl p-4 bg-white hover:rotate-1 transition-all duration-300 hover:scale-[1.02] animate-float" style={{animationDelay: `${index * 0.1}s`}}>
                         <div className="flex justify-between items-start mb-2">
                           <div>
                             <div className="font-bold">From: {msg.senderAddress.slice(0, 4)}...{msg.senderAddress.slice(-4)}</div>
@@ -648,7 +674,7 @@ export default function Home() {
                         ) : (
                           <button
                             onClick={() => handleDecryptMessageFromList(msg.id!)}
-                            className="w-full mt-2 py-2 px-4 border-2 border-black rounded-lg bg-white hover:bg-gray-50 transition-colors"
+                            className="w-full mt-2 py-2 px-4 border-2 border-black rounded-lg bg-white hover:bg-gray-50 transition-colors interactive-btn"
                             disabled={!connected}
                           >
                             {connected ? '🔑 Decrypt Message' : '🔒 Connect Wallet to Decrypt'}
