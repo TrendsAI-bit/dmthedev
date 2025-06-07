@@ -64,6 +64,15 @@ export default function Home() {
     '   ☻\n  /|\\\n  / \\'       // happy face
   ];
 
+  // Mascot messages that cycle through
+  const mascotMessages = [
+    "Hey! I'm your ugly but trustworthy DEV mascot! [nerd face]",
+    "I heard you want to DM the dev? Go ahead. Bribe them, beg them, ask them out on a virtual date—whatever works.",
+    "If this changed your life, you know where to find me. Message me… and don't forget the tip 😉"
+  ];
+
+  const [currentMascotMessage, setCurrentMascotMessage] = useState(0);
+
   const handleFindDeployer = async () => {
     if (!tokenAddress) return;
     
@@ -328,14 +337,21 @@ export default function Home() {
     };
   }, [publicKey?.toBase58()]);
 
-  // Animate stickman poses
+  // Animate stickman poses and mascot messages
   useEffect(() => {
-    const interval = setInterval(() => {
+    const stickmanInterval = setInterval(() => {
       setCurrentStickmanPose((prev) => (prev + 1) % stickmanPoses.length);
     }, 3000); // Change pose every 3 seconds
 
-    return () => clearInterval(interval);
-  }, [stickmanPoses.length]);
+    const messageInterval = setInterval(() => {
+      setCurrentMascotMessage((prev) => (prev + 1) % mascotMessages.length);
+    }, 5000); // Change message every 5 seconds
+
+    return () => {
+      clearInterval(stickmanInterval);
+      clearInterval(messageInterval);
+    };
+  }, [stickmanPoses.length, mascotMessages.length]);
 
   // Update the handleDecryptMessage function
   const handleDecryptMessageFromList = useCallback(async (messageId: string) => {
@@ -459,13 +475,7 @@ export default function Home() {
             {stickmanPoses[currentStickmanPose]}</div>
           <div className="space-y-4">
             <div className="bg-white border-3 border-black rounded-[20px] p-4 max-w-[350px] rotate-1 relative transform transition-all duration-300 hover:rotate-3 hover:scale-105 animate-wiggle-slow">
-              Hey! I'm your ugly but trustworthy DEV mascot! [nerd face]
-            </div>
-            <div className="bg-white border-3 border-black rounded-[20px] p-4 max-w-[350px] -rotate-1 relative transform transition-all duration-300 hover:rotate-2 hover:scale-105 animate-float">
-              I heard you want to DM the dev? Go ahead. Bribe them, beg them, ask them out on a virtual date—whatever works.
-            </div>
-            <div className="bg-white border-3 border-black rounded-[20px] p-4 max-w-[350px] rotate-2 relative transform transition-all duration-300 hover:-rotate-1 hover:scale-105 animate-pulse-gentle">
-              If this changed your life, you know where to find me. Message me… and don't forget the tip 😉
+              {mascotMessages[currentMascotMessage]}
             </div>
           </div>
         </div>
