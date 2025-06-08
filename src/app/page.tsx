@@ -1003,20 +1003,31 @@ export default function Home() {
 
           {/* Call to Action */}
           <div className="text-center">
-            <div className="bg-gradient-to-r from-purple-500 to-pink-500 border-3 border-white rounded-xl p-8 transform hover:scale-105 transition-all duration-300 relative">
+            <div className="bg-white border-4 border-black rounded-2xl p-8 transform hover:scale-105 hover:rotate-1 transition-all duration-300 relative -rotate-1 max-w-4xl mx-auto">
               <div className="absolute -top-8 left-1/2 transform -translate-x-1/2">
-                <div className="font-mono text-4xl whitespace-pre text-white">{'   🎉\n  /|\\\n  / \\'}</div>
+                <div className="font-mono text-4xl whitespace-pre text-black hover:animate-bounce cursor-pointer">{'   🎉\n  /|\\\n  / \\'}</div>
               </div>
-              <h3 className="text-3xl font-bold mb-4 mt-8">Join the Degen Revolution</h3>
-              <p className="text-xl mb-6">
-                First anon crypto communication platform that actually works! 
-              </p>
-              <div className="flex justify-center gap-4 flex-wrap">
+              
+              {/* Main Title */}
+              <h3 className="text-4xl font-bold mb-6 mt-8 text-black transform rotate-1">Join the Degen Revolution</h3>
+              
+              {/* Subtitle with doodle border */}
+              <div className="bg-gray-100 border-3 border-black rounded-xl p-4 mb-6 transform -rotate-[0.5deg]">
+                <p className="text-lg font-bold text-black">
+                  First anon crypto communication platform that actually works! 
+                </p>
+                <div className="text-sm text-gray-600 mt-2 italic">
+                  "Finally, a way to slide into dev DMs without getting rekt!" - Some GIGACHAD probably
+                </div>
+              </div>
+              
+              {/* Action Buttons */}
+              <div className="flex justify-center gap-6 flex-wrap">
                 <a 
                   href="https://pump.fun" 
                   target="_blank" 
                   rel="noopener noreferrer"
-                  className="bg-yellow-400 text-black border-3 border-black py-3 px-6 font-bold rounded-xl hover:scale-110 transition-all duration-300 interactive-btn"
+                  className="bg-white text-black border-4 border-black py-4 px-8 font-bold rounded-xl transform rotate-2 hover:-rotate-1 hover:scale-110 transition-all duration-300 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] hover:shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] active:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] active:translate-x-1 active:translate-y-1"
                 >
                   🎯 Buy $DMDEV (pump.fun)
                 </a>
@@ -1024,10 +1035,17 @@ export default function Home() {
                   href="https://x.com/DMthedevs" 
                   target="_blank" 
                   rel="noopener noreferrer"
-                  className="bg-blue-400 text-white border-3 border-black py-3 px-6 font-bold rounded-xl hover:scale-110 transition-all duration-300 interactive-btn"
+                  className="bg-white text-black border-4 border-black py-4 px-8 font-bold rounded-xl transform -rotate-1 hover:rotate-2 hover:scale-110 transition-all duration-300 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] hover:shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] active:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] active:translate-x-1 active:translate-y-1"
                 >
                   🐦 Follow the Chaos
                 </a>
+              </div>
+              
+              {/* Bottom doodle decoration */}
+              <div className="mt-6 flex justify-center gap-4">
+                <div className="font-mono text-2xl transform rotate-12 hover:animate-spin cursor-pointer">{'🚀'}</div>
+                <div className="font-mono text-2xl transform -rotate-6 hover:animate-bounce cursor-pointer">{'💎'}</div>
+                <div className="font-mono text-2xl transform rotate-3 hover:animate-pulse cursor-pointer">{'🔥'}</div>
               </div>
             </div>
           </div>
