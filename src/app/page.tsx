@@ -436,9 +436,6 @@ export default function Home() {
           <div className="text-3xl font-bold -rotate-1 relative">
             DM the DEV ✎
           </div>
-          <div className='font-bold text-2xl -rotate-2'>
-            2LkR3n89oLvks5z7oaRbpScXYCseoBWj4vKqMdC5moon
-          </div>
           <div className="flex items-center gap-4">
             <button 
               onClick={() => document.getElementById('token-lookup')?.scrollIntoView({ behavior: 'smooth' })}
@@ -1062,6 +1059,7 @@ export default function Home() {
               <strong>Disclaimer:</strong> $DMDEV is a utility token for the DM the DEV platform. 
               DYOR and invest responsibly. Not financial advice, just building cool encrypted messaging tech.
             </p>
+            <p className="text-gray-500">2LkR3n89oLvks5z7oaRbpScXYCseoBWj4vKqMdC5moon</p>
             <p className="text-gray-500">
               Built with ❤️ and too much caffeine • Powered by moonit • Secured by actual cryptography
             </p>
