@@ -480,6 +480,9 @@ export default function Home() {
               {mascotMessages[currentMascotMessage]}
             </div>
           </div>
+          <div className='font-bold text-xl text-center -rotate-2 mt-8 p-3 border-2 border-dashed border-black bg-yellow-100 break-all max-w-full md:max-w-lg'>
+            2LkR3n89oLvks5z7oaRbpScXYCseoBWj4vKqMdC5moon
+          </div>
         </div>
 
         {/* How It Works Section */}
