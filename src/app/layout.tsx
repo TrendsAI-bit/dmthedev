@@ -6,11 +6,11 @@ import { ClientWalletProvider } from "@/components/WalletProvider";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "DM the DEV",
-  description: "Send encrypted messages to token deployers on Solana",
-  applicationName: "DM the DEV",
-  keywords: ["Solana", "DeFi", "Messaging", "Crypto", "Token", "Developer"],
-  authors: [{ name: "DM the DEV Team" }],
+  title: "Moonit",
+  description: "Launch your token on Moonit",
+  applicationName: "Moonit",
+  keywords: ["Solana", "DeFi", "Messaging", "Crypto", "Token", "Developer", "Moonit"],
+  authors: [{ name: "Moonit Team" }],
   themeColor: "#000000",
   viewport: "width=device-width, initial-scale=1",
   manifest: "/site.webmanifest",
@@ -25,24 +25,24 @@ export const metadata: Metadata = {
     ],
   },
   openGraph: {
-    title: "DM the DEV",
-    description: "Send encrypted messages to token deployers on Solana",
+    title: "Moonit",
+    description: "Launch your token on Moonit",
     url: "https://dmthedev.cloud",
-    siteName: "DM the DEV",
+    siteName: "Moonit",
     type: "website",
     images: [
       {
         url: "/icon-512.png",
         width: 512,
         height: 512,
-        alt: "DM the DEV Logo",
+        alt: "Moonit Logo",
       },
     ],
   },
   twitter: {
     card: "summary",
-    title: "DM the DEV",
-    description: "Send encrypted messages to token deployers on Solana",
+    title: "Moonit",
+    description: "Launch your token on Moonit",
     images: ["/icon-512.png"],
   },
 };
@@ -60,7 +60,7 @@ export default function RootLayout({
         <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
         <link rel="apple-touch-icon" sizes="192x192" href="/icon-192.png" />
         <link rel="manifest" href="/site.webmanifest" />
-        <meta name="application-name" content="DM the DEV" />
+        <meta name="application-name" content="Moonit" />
         <meta name="theme-color" content="#000000" />
       </head>
       <body className={inter.className}>

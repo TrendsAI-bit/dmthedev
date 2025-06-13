@@ -1,7 +1,7 @@
 {
-  "name": "DM the DEV",
-  "short_name": "DMtheDEV",
-  "description": "Send encrypted messages to token deployers on Solana",
+  "name": "Moonit",
+  "short_name": "Moonit",
+  "description": "Launch your token on Moonit",
   "icons": [
     {
       "src": "/favicon-16x16.png",
