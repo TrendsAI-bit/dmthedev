@@ -481,7 +481,6 @@ export default function Home() {
             </div>
           </div>
           <div className='font-bold text-xl text-center -rotate-2 mt-8 p-3 border-2 border-dashed border-black bg-yellow-100 break-all max-w-full md:max-w-lg'>
-            2LkR3n89oLvks5z7oaRbpScXYCseoBWj4vKqMdC5moon
           </div>
         </div>
 
@@ -906,7 +905,7 @@ export default function Home() {
             </h2>
             <div className="text-center mb-12 text-gray-300">
               <p className="text-xl mb-4">Anonymous DEV Messages Go BRRR on Solana 🚀</p>
-              <p className="text-sm">Version 1.0 • Launching on moonit because we're degens</p>
+              <p className="text-sm">Version 1.0 • Launching on letsbonk because we're degens</p>
             </div>
           </section>
 
@@ -959,7 +958,7 @@ export default function Home() {
               <h3 className="text-2xl font-bold mb-4 text-yellow-400">💎 $DMDEV Tokenomics</h3>
               <div className="space-y-2 text-gray-300 text-sm">
                 <div><strong className="text-white">Supply:</strong> 1B (nice round number)</div>
-                <div><strong className="text-white">Launch:</strong> moonit (obviously)</div>
+                <div><strong className="text-white">Launch:</strong> letsbonk (obviously)</div>
                 <div><strong className="text-white">Uses:</strong> Premium features, governance, tips, revenue share</div>
               </div>
             </div>
@@ -975,7 +974,7 @@ export default function Home() {
                 <div className="bg-blue-400/20 border-2 border-blue-400 rounded-lg p-4">
                   <div className="font-bold text-blue-400 mb-2">Q2 2025: "The Launch"</div>
                   <div className="text-xs text-gray-300">
-                    Platform launch • moonit token • Basic messaging • Solana integration
+                    Platform launch • letsbonk token • Basic messaging • Solana integration
                   </div>
                 </div>
               </div>
@@ -1027,12 +1026,12 @@ export default function Home() {
               {/* Action Buttons */}
               <div className="flex justify-center gap-6 flex-wrap">
                 <a 
-                  href="https://moonit.xyz" 
+                  href="https://letsbonk.xyz" 
                   target="_blank" 
                   rel="noopener noreferrer"
                   className="bg-white text-black border-4 border-black py-4 px-8 font-bold rounded-xl transform rotate-2 hover:-rotate-1 hover:scale-110 transition-all duration-300 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] hover:shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] active:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] active:translate-x-1 active:translate-y-1"
                 >
-                  🎯 Buy $DMDEV (moonit)
+                  🎯 Buy $DMDEV (letsbonk)
                 </a>
                 <a 
                   href="https://x.com/DMthedevs" 
@@ -1064,7 +1063,7 @@ export default function Home() {
             </p>
             <p className="text-gray-500">2LkR3n89oLvks5z7oaRbpScXYCseoBWj4vKqMdC5moon</p>
             <p className="text-gray-500">
-              Built with ❤️ and too much caffeine • Powered by moonit • Secured by actual cryptography
+              Built with ❤️ and too much caffeine • Powered by letsbonk • Secured by actual cryptography
             </p>
           </div>
         </div>
